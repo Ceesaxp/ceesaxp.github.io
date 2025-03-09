@@ -2,25 +2,424 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pong Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telegram Pong</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
+            padding: 0;
+            overflow: hidden;
             background-color: #000;
-            touch-action: none; /* Disable touch scrolling */
+            touch-action: none;
+            font-family: Arial, sans-serif;
         }
-        canvas {
-            border: 1px solid #fff;
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #game-canvas {
+            background-color: #000;
+            border: 2px solid #333;
+            max-width: 100%;
+            max-height: 80vh;
+        }
+        
+        #score-display {
+            position: absolute;
+            top: 20px;
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            display: flex;
+            gap: 20px;
+        }
+        
+        button {
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #1976d2;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        #pause-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        .menu-buttons {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
         }
     </style>
 </head>
 <body>
-    <canvas id="pongCanvas" width="800" height="600"></canvas>
-    <script src="pong.js"></script>
+    <div id="game-container">
+        <div id="score-display">0 - 0</div>
+        <canvas id="game-canvas"></canvas>
+        <div id="controls">
+            <button id="pause-btn">Pause</button>
+            <button id="cancel-btn">Cancel</button>
+        </div>
+        
+        <div id="game-over">
+            <h2 id="winner-text">Game Over!</h2>
+            <div class="menu-buttons">
+                <button id="restart-btn">Play Again</button>
+                <button id="exit-btn">Exit</button>
+            </div>
+        </div>
+        
+        <div id="pause-menu">
+            <h2>Game Paused</h2>
+            <div class="menu-buttons">
+                <button id="resume-btn">Resume</button>
+                <button id="restart-from-pause-btn">Restart</button>
+                <button id="exit-from-pause-btn">Exit</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Telegram Web App
+        const tgApp = window.Telegram.WebApp;
+        tgApp.expand();
+        tgApp.enableClosingConfirmation();
+        
+        // Set theme based on Telegram color scheme
+        document.body.style.backgroundColor = tgApp.colorScheme === 'dark' ? '#1f1f1f' : '#f0f0f0';
+        
+        // Game elements
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score-display');
+        const pauseBtn = document.getElementById('pause-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const gameOver = document.getElementById('game-over');
+        const pauseMenu = document.getElementById('pause-menu');
+        const resumeBtn = document.getElementById('resume-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const restartFromPauseBtn = document.getElementById('restart-from-pause-btn');
+        const exitBtn = document.getElementById('exit-btn');
+        const exitFromPauseBtn = document.getElementById('exit-from-pause-btn');
+        const winnerText = document.getElementById('winner-text');
+        
+        // Game variables
+        let gameWidth = 400;
+        let gameHeight = 600;
+        const paddleHeight = 10;
+        const paddleWidth = 80;
+        const ballSize = 10;
+        const maxScore = 10;
+        
+        let player1Score = 0;
+        let player2Score = 0;
+        let ballX = gameWidth / 2;
+        let ballY = gameHeight / 2;
+        let ballSpeedX = 5;
+        let ballSpeedY = 5;
+        let player1PaddleX = gameWidth / 2 - paddleWidth / 2;
+        let player2PaddleX = gameWidth / 2 - paddleWidth / 2;
+        
+        let gameRunning = false;
+        let gamePaused = false;
+        let touchStartX = 0;
+        let lastTouch = 0;
+        let animationFrameId;
+        
+        // Set canvas size based on screen
+        function resizeCanvas() {
+            // Calculate game dimensions while maintaining aspect ratio
+            const containerWidth = window.innerWidth;
+            const containerHeight = window.innerHeight * 0.8;
+            
+            if (containerWidth / containerHeight > gameWidth / gameHeight) {
+                // Height limited
+                canvas.height = containerHeight;
+                canvas.width = containerHeight * (gameWidth / gameHeight);
+            } else {
+                // Width limited
+                canvas.width = containerWidth;
+                canvas.height = containerWidth * (gameHeight / gameWidth);
+            }
+            
+            // Adjust game coordinates based on canvas size
+            gameWidth = canvas.width;
+            gameHeight = canvas.height;
+            
+            // Reset paddles and ball positions when resizing
+            if (!gameRunning) {
+                resetGame();
+            }
+        }
+        
+        // Initialize the game
+        function initGame() {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Touch events for controlling paddles
+            canvas.addEventListener('touchstart', handleTouchStart);
+            canvas.addEventListener('touchmove', handleTouchMove);
+            canvas.addEventListener('touchend', handleTouchEnd);
+            
+            // Button event listeners
+            pauseBtn.addEventListener('click', togglePause);
+            cancelBtn.addEventListener('click', confirmCancel);
+            resumeBtn.addEventListener('click', resumeGame);
+            restartBtn.addEventListener('click', startNewGame);
+            restartFromPauseBtn.addEventListener('click', startNewGame);
+            exitBtn.addEventListener('click', exitGame);
+            exitFromPauseBtn.addEventListener('click', exitGame);
+            
+            // Start the game
+            resetGame();
+            gameRunning = true;
+            gamePaused = false;
+            gameLoop();
+        }
+        
+        // Game loop
+        function gameLoop() {
+            if (!gameRunning) return;
+            if (!gamePaused) {
+                update();
+                render();
+            }
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        // Update game state
+        function update() {
+            // Move the ball
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
+            
+            // Ball collision with left and right walls
+            if (ballX <= 0 || ballX >= gameWidth - ballSize) {
+                ballSpeedX = -ballSpeedX;
+            }
+            
+            // Ball collision with paddles
+            if (
+                (ballY <= paddleHeight && ballX >= player1PaddleX && ballX <= player1PaddleX + paddleWidth) ||
+                (ballY >= gameHeight - paddleHeight - ballSize && ballX >= player2PaddleX && ballX <= player2PaddleX + paddleWidth)
+            ) {
+                ballSpeedY = -ballSpeedY;
+                
+                // Add some variation based on where the ball hits the paddle
+                const paddleX = ballY <= paddleHeight ? player1PaddleX : player2PaddleX;
+                const hitPosition = (ballX - paddleX) / paddleWidth; // 0 to 1
+                ballSpeedX = 10 * (hitPosition - 0.5); // -5 to 5
+            }
+            
+            // Ball out of bounds (scoring)
+            if (ballY < 0) {
+                // Player 2 scores
+                player2Score++;
+                updateScore();
+                resetBall();
+            } else if (ballY > gameHeight) {
+                // Player 1 scores
+                player1Score++;
+                updateScore();
+                resetBall();
+            }
+            
+            // Check for game over
+            if (player1Score >= maxScore || player2Score >= maxScore) {
+                endGame();
+            }
+        }
+        
+        // Render game objects
+        function render() {
+            // Clear canvas
+            ctx.fillStyle = tgApp.colorScheme === 'dark' ? '#1f1f1f' : '#f0f0f0';
+            ctx.fillRect(0, 0, gameWidth, gameHeight);
+            
+            // Draw center line
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 15]);
+            ctx.beginPath();
+            ctx.moveTo(0, gameHeight / 2);
+            ctx.lineTo(gameWidth, gameHeight / 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw paddles
+            ctx.fillStyle = '#1e88e5';
+            ctx.fillRect(player1PaddleX, 0, paddleWidth, paddleHeight);
+            ctx.fillRect(player2PaddleX, gameHeight - paddleHeight, paddleWidth, paddleHeight);
+            
+            // Draw ball
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(ballX, ballY, ballSize, ballSize);
+        }
+        
+        // Reset ball position
+        function resetBall() {
+            ballX = gameWidth / 2;
+            ballY = gameHeight / 2;
+            ballSpeedX = Math.random() > 0.5 ? 5 : -5;
+            ballSpeedY = Math.random() > 0.5 ? 5 : -5;
+        }
+        
+        // Reset game state
+        function resetGame() {
+            player1Score = 0;
+            player2Score = 0;
+            player1PaddleX = gameWidth / 2 - paddleWidth / 2;
+            player2PaddleX = gameWidth / 2 - paddleWidth / 2;
+            resetBall();
+            updateScore();
+        }
+        
+        // Update score display
+        function updateScore() {
+            scoreDisplay.textContent = `${player1Score} - ${player2Score}`;
+        }
+        
+        // Handle touch start
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            lastTouch = touch.clientY < window.innerHeight / 2 ? 1 : 2; // 1 for top paddle, 2 for bottom
+        }
+        
+        // Handle touch move
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!gamePaused && gameRunning) {
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - touchStartX;
+                touchStartX = touch.clientX;
+                
+                // Determine which paddle to move based on touch position
+                if (lastTouch === 1) {
+                    player1PaddleX += deltaX;
+                } else {
+                    player2PaddleX += deltaX;
+                }
+                
+                // Keep paddles within bounds
+                player1PaddleX = Math.max(0, Math.min(gameWidth - paddleWidth, player1PaddleX));
+                player2PaddleX = Math.max(0, Math.min(gameWidth - paddleWidth, player2PaddleX));
+            }
+        }
+        
+        // Handle touch end
+        function handleTouchEnd(e) {
+            e.preventDefault();
+        }
+        
+        // Toggle pause state
+        function togglePause() {
+            gamePaused = !gamePaused;
+            if (gamePaused) {
+                pauseMenu.style.display = 'flex';
+            } else {
+                pauseMenu.style.display = 'none';
+            }
+        }
+        
+        // Resume game from pause
+        function resumeGame() {
+            gamePaused = false;
+            pauseMenu.style.display = 'none';
+        }
+        
+        // Confirm game cancellation
+        function confirmCancel() {
+            if (confirm('Are you sure you want to cancel the game?')) {
+                exitGame();
+            }
+        }
+        
+        // End the game
+        function endGame() {
+            gameRunning = false;
+            gameOver.style.display = 'flex';
+            
+            if (player1Score >= maxScore) {
+                winnerText.textContent = 'Player 1 Wins!';
+            } else {
+                winnerText.textContent = 'Player 2 Wins!';
+            }
+            
+            // Notify Telegram Mini App
+            tgApp.HapticFeedback.notificationOccurred('success');
+        }
+        
+        // Start a new game
+        function startNewGame() {
+            resetGame();
+            gameRunning = true;
+            gamePaused = false;
+            gameOver.style.display = 'none';
+            pauseMenu.style.display = 'none';
+            cancelAnimationFrame(animationFrameId);
+            gameLoop();
+        }
+        
+        // Exit the game
+        function exitGame() {
+            gameRunning = false;
+            cancelAnimationFrame(animationFrameId);
+            tgApp.close();
+        }
+        
+        // Initialize the game when the page loads
+        window.onload = initGame;
+    </script>
 </body>
 </html>
