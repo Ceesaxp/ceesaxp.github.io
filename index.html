@@ -9,44 +9,29 @@
 </head>
 <body>
     <div id="game-container">
+        <!-- Main Menu Screen -->
         <div id="main-menu">
             <h1>PONG</h1>
             <div class="menu-buttons">
-                <button id="play-btn">PLAY GAME</button>
-                <button id="leaderboard-btn">LEADERBOARD</button>
-            </div>
-        </div>
-
-        <div id="score-display">0 - 0</div>
-        <canvas id="game-canvas"></canvas>
-        <div id="controls">
-            <button id="pause-btn">PAUSE</button>
-            <button id="cancel-btn">EXIT</button>
-        </div>
-        
-        <div id="game-over">
-            <h2 id="winner-text">GAME OVER</h2>
-            <div id="save-score-container">
-                <label for="player-name">ENTER YOUR NAME:</label>
-                <input type="text" id="player-name" maxlength="10" placeholder="PLAYER">
-                <button id="save-score-btn">SAVE SCORE</button>
-            </div>
-            <div class="menu-buttons">
-                <button id="restart-btn">PLAY AGAIN</button>
-                <button id="view-leaderboard-btn">VIEW LEADERBOARD</button>
+                <button id="play-btn">PLAY</button>
                 <button id="exit-btn">EXIT</button>
             </div>
         </div>
+
+        <!-- Game Screen -->
+        <div id="score-display">0 - 0</div>
+        <canvas id="game-canvas"></canvas>
         
-        <div id="pause-menu">
-            <h2>PAUSED</h2>
+        <!-- Game Over Screen -->
+        <div id="game-over">
+            <h2 id="winner-text">GAME OVER</h2>
             <div class="menu-buttons">
-                <button id="resume-btn">RESUME</button>
-                <button id="restart-from-pause-btn">RESTART</button>
-                <button id="exit-from-pause-btn">EXIT</button>
+                <button id="restart-btn">PLAY AGAIN</button>
+                <button id="back-btn">BACK</button>
             </div>
         </div>
 
+        <!-- Leaderboard Screen -->
         <div id="leaderboard">
             <h2>LEADERBOARD</h2>
             <div id="leaderboard-content">
@@ -65,7 +50,6 @@
                 </table>
                 <div id="no-scores-message">NO SCORES YET</div>
             </div>
-            <button id="back-btn">BACK</button>
         </div>
     </div>
     

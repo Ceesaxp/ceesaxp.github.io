@@ -22,7 +22,7 @@ const ScoreManager = {
             
             // Create new score entry
             const newScore = {
-                name: name || 'UNKNOWN',
+                name: name || 'PLAYER',
                 score: score,
                 date: new Date().toISOString().split('T')[0] // Format: YYYY-MM-DD
             };
@@ -48,17 +48,6 @@ const ScoreManager = {
         }
     },
     
-    // Clear all scores (for testing)
-    clearScores: function() {
-        try {
-            localStorage.removeItem(STORAGE_KEY);
-            return true;
-        } catch (error) {
-            console.error('Failed to clear scores:', error);
-            return false;
-        }
-    },
-    
     // Check if a score is high enough to make the leaderboard
     isHighScore: function(score) {
         const scores = this.getScores();
@@ -70,26 +59,6 @@ const ScoreManager = {
         
         // Check if the score is higher than the lowest score on the board
         return score > scores[scores.length - 1].score;
-    },
-    
-    // Get user's rank for a given score
-    getRankForScore: function(score) {
-        const scores = this.getScores();
-        
-        // If no scores, rank is 1
-        if (scores.length === 0) {
-            return 1;
-        }
-        
-        // Find position in leaderboard
-        for (let i = 0; i < scores.length; i++) {
-            if (score > scores[i].score) {
-                return i + 1;
-            }
-        }
-        
-        // If score is lower than all existing scores
-        return scores.length + 1;
     }
 };
 
