@@ -24,6 +24,7 @@ body {
     border: 2px solid #fff;
     max-width: 100%;
     max-height: 80vh;
+    display: none; /* Hidden initially */
 }
 
 #score-display {
@@ -36,12 +37,13 @@ body {
     width: 100%;
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
+    display: none; /* Hidden initially */
 }
 
 #controls {
     position: absolute;
     bottom: 20px;
-    display: flex;
+    display: none; /* Hidden initially */
     gap: 20px;
 }
 
@@ -62,6 +64,26 @@ button:hover, button:active {
     color: #000;
 }
 
+#main-menu {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+#main-menu h1 {
+    font-size: 48px;
+    letter-spacing: 10px;
+    margin-bottom: 40px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+}
+
 #game-over {
     position: absolute;
     top: 0;
@@ -76,6 +98,7 @@ button:hover, button:active {
     color: white;
     font-size: 24px;
     letter-spacing: 3px;
+    z-index: 10;
 }
 
 #pause-menu {
@@ -92,6 +115,59 @@ button:hover, button:active {
     color: white;
     font-size: 24px;
     letter-spacing: 3px;
+    z-index: 10;
+}
+
+#leaderboard {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 50px;
+    z-index: 10;
+    overflow-y: auto;
+}
+
+#leaderboard-content {
+    width: 90%;
+    max-width: 600px;
+    margin: 20px 0 30px 0;
+    overflow-y: auto;
+    max-height: 60vh;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+th, td {
+    padding: 10px;
+    border-bottom: 1px solid #444;
+}
+
+th {
+    background-color: #111;
+    letter-spacing: 2px;
+}
+
+tr:hover {
+    background-color: #222;
+}
+
+#no-scores-message {
+    text-align: center;
+    padding: 20px;
+    font-size: 18px;
+    display: none;
 }
 
 .menu-buttons {
@@ -102,9 +178,29 @@ button:hover, button:active {
     align-items: center;
 }
 
-h2 {
+h1, h2 {
     margin-bottom: 10px;
     text-align: center;
     font-family: 'Courier New', monospace;
     letter-spacing: 3px;
+}
+
+#save-score-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px 0;
+    gap: 10px;
+}
+
+input[type="text"] {
+    background-color: #000;
+    color: #fff;
+    border: 2px solid #fff;
+    padding: 10px;
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    width: 200px;
+    letter-spacing: 1px;
 }
