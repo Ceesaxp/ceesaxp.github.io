@@ -1,140 +1,344 @@
-const canvas = document.getElementById('pongCanvas');
+// Initialize Telegram Web App
+const tgApp = window.Telegram.WebApp;
+tgApp.expand();
+tgApp.enableClosingConfirmation();
+
+// Game elements
+const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
+const scoreDisplay = document.getElementById('score-display');
+const pauseBtn = document.getElementById('pause-btn');
+const cancelBtn = document.getElementById('cancel-btn');
+const gameOver = document.getElementById('game-over');
+const pauseMenu = document.getElementById('pause-menu');
+const resumeBtn = document.getElementById('resume-btn');
+const restartBtn = document.getElementById('restart-btn');
+const restartFromPauseBtn = document.getElementById('restart-from-pause-btn');
+const exitBtn = document.getElementById('exit-btn');
+const exitFromPauseBtn = document.getElementById('exit-from-pause-btn');
+const winnerText = document.getElementById('winner-text');
 
-// Paddle properties
-const paddleWidth = 10;
-const paddleHeight = 100;
-let leftPaddleY = canvas.height / 2 - paddleHeight / 2;
-let rightPaddleY = canvas.height / 2 - paddleHeight / 2;
-const paddleSpeed = 7;
+// Game variables
+let gameWidth = 400;
+let gameHeight = 600;
+const paddleHeight = 10;
+const paddleWidth = 70;
+const ballSize = 8;
+const maxScore = 10;
 
-// Ball properties
-const ballSize = 10;
-let ballX = canvas.width / 2;
-let ballY = canvas.height / 2;
-let ballSpeedX = 5;
-let ballSpeedY = 5;
+// Game state
+let player1Score = 0;
+let player2Score = 0;
+let ballX = gameWidth / 2;
+let ballY = gameHeight / 2;
+let ballSpeedX = 4;
+let ballSpeedY = 4;
+let player1PaddleX = gameWidth / 2 - paddleWidth / 2;
+let player2PaddleX = gameWidth / 2 - paddleWidth / 2;
 
-// Score
-let leftScore = 0;
-let rightScore = 0;
+let gameRunning = false;
+let gamePaused = false;
+let touchStartX = 0;
+let lastTouch = 0;
+let animationFrameId;
 
-// Draw paddles
-function drawPaddles() {
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, leftPaddleY, paddleWidth, paddleHeight);
-    ctx.fillRect(canvas.width - paddleWidth, rightPaddleY, paddleWidth, paddleHeight);
+// Set canvas size based on screen
+function resizeCanvas() {
+    // Calculate game dimensions while maintaining aspect ratio
+    const containerWidth = window.innerWidth;
+    const containerHeight = window.innerHeight * 0.8;
+    
+    if (containerWidth / containerHeight > gameWidth / gameHeight) {
+        // Height limited
+        canvas.height = containerHeight;
+        canvas.width = containerHeight * (gameWidth / gameHeight);
+    } else {
+        // Width limited
+        canvas.width = containerWidth;
+        canvas.height = containerWidth * (gameHeight / gameWidth);
+    }
+    
+    // Adjust game coordinates based on canvas size
+    gameWidth = canvas.width;
+    gameHeight = canvas.height;
+    
+    // Reset paddles and ball positions when resizing
+    if (!gameRunning) {
+        resetGame();
+    }
 }
 
-// Draw ball
-function drawBall() {
-    ctx.beginPath();
-    ctx.arc(ballX, ballY, ballSize, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-    ctx.closePath();
+// Initialize the game
+function initGame() {
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Touch events for controlling paddles
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', handleTouchEnd);
+    
+    // Button event listeners
+    pauseBtn.addEventListener('click', togglePause);
+    cancelBtn.addEventListener('click', confirmCancel);
+    resumeBtn.addEventListener('click', resumeGame);
+    restartBtn.addEventListener('click', startNewGame);
+    restartFromPauseBtn.addEventListener('click', startNewGame);
+    exitBtn.addEventListener('click', exitGame);
+    exitFromPauseBtn.addEventListener('click', exitGame);
+    
+    // Start the game
+    resetGame();
+    gameRunning = true;
+    gamePaused = false;
+    gameLoop();
 }
 
-// Move paddles
-function movePaddles() {
-    if (leftPaddleUp && leftPaddleY > 0) {
-        leftPaddleY -= paddleSpeed;
+// Game loop
+function gameLoop() {
+    if (!gameRunning) return;
+    if (!gamePaused) {
+        update();
+        render();
     }
-    if (leftPaddleDown && leftPaddleY < canvas.height - paddleHeight) {
-        leftPaddleY += paddleSpeed;
-    }
-    if (rightPaddleUp && rightPaddleY > 0) {
-        rightPaddleY -= paddleSpeed;
-    }
-    if (rightPaddleDown && rightPaddleY < canvas.height - paddleHeight) {
-        rightPaddleY += paddleSpeed;
-    }
+    animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// Move ball
-function moveBall() {
+// Update game state
+function update() {
+    // Move the ball
     ballX += ballSpeedX;
     ballY += ballSpeedY;
-
-    // Ball collision with top and bottom walls
-    if (ballY + ballSize > canvas.height || ballY - ballSize < 0) {
-        ballSpeedY = -ballSpeedY;
+    
+    // Ball collision with left and right walls
+    if (ballX <= 0 || ballX >= gameWidth - ballSize) {
+        ballSpeedX = -ballSpeedX;
+        
+        // Classic pong sound effect
+        playSound(150);
     }
-
+    
     // Ball collision with paddles
-    if (ballX - ballSize < paddleWidth) {
-        if (ballY > leftPaddleY && ballY < leftPaddleY + paddleHeight) {
-            ballSpeedX = -ballSpeedX;
-        } else if (ballX - ballSize < 0) {
-            rightScore++;
-            resetBall();
+    if (
+        (ballY <= paddleHeight && ballX >= player1PaddleX && ballX <= player1PaddleX + paddleWidth) ||
+        (ballY >= gameHeight - paddleHeight - ballSize && ballX >= player2PaddleX && ballX <= player2PaddleX + paddleWidth)
+    ) {
+        ballSpeedY = -ballSpeedY;
+        
+        // Add some variation based on where the ball hits the paddle
+        const paddleX = ballY <= paddleHeight ? player1PaddleX : player2PaddleX;
+        const hitPosition = (ballX - paddleX) / paddleWidth; // 0 to 1
+        ballSpeedX = 7 * (hitPosition - 0.5); // -3.5 to 3.5
+        
+        // Speed up the ball slightly as the game progresses
+        const maxBallSpeed = 8;
+        const speedMultiplier = 1.05;
+        
+        if (Math.abs(ballSpeedY) < maxBallSpeed) {
+            ballSpeedY = ballSpeedY > 0 ? 
+                Math.min(ballSpeedY * speedMultiplier, maxBallSpeed) : 
+                Math.max(ballSpeedY * speedMultiplier, -maxBallSpeed);
         }
-    } else if (ballX + ballSize > canvas.width - paddleWidth) {
-        if (ballY > rightPaddleY && ballY < rightPaddleY + paddleHeight) {
-            ballSpeedX = -ballSpeedX;
-        } else if (ballX + ballSize > canvas.width) {
-            leftScore++;
-            resetBall();
-        }
+        
+        // Classic pong sound effect (higher pitch for paddle)
+        playSound(220);
+        
+        // Haptic feedback
+        tgApp.HapticFeedback.impactOccurred('light');
+    }
+    
+    // Ball out of bounds (scoring)
+    if (ballY < 0) {
+        // Player 2 scores
+        player2Score++;
+        updateScore();
+        playSound(100, 0.3);
+        resetBall();
+    } else if (ballY > gameHeight) {
+        // Player 1 scores
+        player1Score++;
+        updateScore();
+        playSound(100, 0.3);
+        resetBall();
+    }
+    
+    // Check for game over
+    if (player1Score >= maxScore || player2Score >= maxScore) {
+        endGame();
+    }
+}
+
+// Render game objects
+function render() {
+    // Clear canvas
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, gameWidth, gameHeight);
+    
+    // Draw center line
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 15]);
+    ctx.beginPath();
+    ctx.moveTo(0, gameHeight / 2);
+    ctx.lineTo(gameWidth, gameHeight / 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Draw paddles
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(player1PaddleX, 0, paddleWidth, paddleHeight);
+    ctx.fillRect(player2PaddleX, gameHeight - paddleHeight, paddleWidth, paddleHeight);
+    
+    // Draw ball
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(ballX, ballY, ballSize, ballSize);
+}
+
+// Simple sound effect generator
+function playSound(frequency, duration = 0.1) {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'square';
+        oscillator.frequency.value = frequency;
+        gainNode.gain.value = 0.1;
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        
+        // Stop the sound after the specified duration
+        setTimeout(() => {
+            oscillator.stop();
+            audioContext.close();
+        }, duration * 1000);
+    } catch (e) {
+        console.error('Audio playback error:', e);
     }
 }
 
 // Reset ball position
 function resetBall() {
-    ballX = canvas.width / 2;
-    ballY = canvas.height / 2;
-    ballSpeedX = -ballSpeedX;
-    ballSpeedY = 5;
+    ballX = gameWidth / 2;
+    ballY = gameHeight / 2;
+    
+    // Randomize initial ball direction
+    ballSpeedX = (Math.random() > 0.5 ? 4 : -4) * (0.8 + Math.random() * 0.4);
+    ballSpeedY = (Math.random() > 0.5 ? 4 : -4) * (0.8 + Math.random() * 0.4);
 }
 
-// Draw score
-function drawScore() {
-    ctx.font = '45px Arial';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(leftScore, canvas.width / 4, canvas.height / 5);
-    ctx.fillText(rightScore, 3 * canvas.width / 4, canvas.height / 5);
+// Reset game state
+function resetGame() {
+    player1Score = 0;
+    player2Score = 0;
+    player1PaddleX = gameWidth / 2 - paddleWidth / 2;
+    player2PaddleX = gameWidth / 2 - paddleWidth / 2;
+    resetBall();
+    updateScore();
 }
 
-// Game loop
-function gameLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawPaddles();
-    drawBall();
-    movePaddles();
-    moveBall();
-    drawScore();
-    requestAnimationFrame(gameLoop);
+// Update score display
+function updateScore() {
+    scoreDisplay.textContent = `${player1Score} - ${player2Score}`;
 }
 
-// Controls
-let leftPaddleUp = false;
-let leftPaddleDown = false;
-let rightPaddleUp = false;
-let rightPaddleDown = false;
+// Handle touch start
+function handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    lastTouch = touch.clientY < window.innerHeight / 2 ? 1 : 2; // 1 for top paddle, 2 for bottom
+}
 
-document.addEventListener('keydown', (event) => {
-    if (event.key === 'w') {
-        leftPaddleUp = true;
-    } else if (event.key === 's') {
-        leftPaddleDown = true;
-    } else if (event.key === 'ArrowUp') {
-        rightPaddleUp = true;
-    } else if (event.key === 'ArrowDown') {
-        rightPaddleDown = true;
+// Handle touch move
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (!gamePaused && gameRunning) {
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - touchStartX;
+        touchStartX = touch.clientX;
+        
+        // Determine which paddle to move based on touch position
+        if (lastTouch === 1) {
+            player1PaddleX += deltaX;
+        } else {
+            player2PaddleX += deltaX;
+        }
+        
+        // Keep paddles within bounds
+        player1PaddleX = Math.max(0, Math.min(gameWidth - paddleWidth, player1PaddleX));
+        player2PaddleX = Math.max(0, Math.min(gameWidth - paddleWidth, player2PaddleX));
     }
-});
+}
 
-document.addEventListener('keyup', (event) => {
-    if (event.key === 'w') {
-        leftPaddleUp = false;
-    } else if (event.key === 's') {
-        leftPaddleDown = false;
-    } else if (event.key === 'ArrowUp') {
-        rightPaddleUp = false;
-    } else if (event.key === 'ArrowDown') {
-        rightPaddleDown = false;
+// Handle touch end
+function handleTouchEnd(e) {
+    e.preventDefault();
+}
+
+// Toggle pause state
+function togglePause() {
+    gamePaused = !gamePaused;
+    if (gamePaused) {
+        pauseMenu.style.display = 'flex';
+    } else {
+        pauseMenu.style.display = 'none';
     }
-});
+}
 
-// Start the game
-gameLoop();
+// Resume game from pause
+function resumeGame() {
+    gamePaused = false;
+    pauseMenu.style.display = 'none';
+}
+
+// Confirm game cancellation
+function confirmCancel() {
+    if (confirm('Are you sure you want to exit the game?')) {
+        exitGame();
+    }
+}
+
+// End the game
+function endGame() {
+    gameRunning = false;
+    gameOver.style.display = 'flex';
+    
+    if (player1Score >= maxScore) {
+        winnerText.textContent = 'PLAYER 1 WINS';
+    } else {
+        winnerText.textContent = 'PLAYER 2 WINS';
+    }
+    
+    // Victory sound
+    playSound(440, 0.2);
+    setTimeout(() => playSound(660, 0.2), 200);
+    setTimeout(() => playSound(880, 0.5), 400);
+    
+    // Notify Telegram Mini App
+    tgApp.HapticFeedback.notificationOccurred('success');
+}
+
+// Start a new game
+function startNewGame() {
+    resetGame();
+    gameRunning = true;
+    gamePaused = false;
+    gameOver.style.display = 'none';
+    pauseMenu.style.display = 'none';
+    cancelAnimationFrame(animationFrameId);
+    gameLoop();
+}
+
+// Exit the game
+function exitGame() {
+    gameRunning = false;
+    cancelAnimationFrame(animationFrameId);
+    tgApp.close();
+}
+
+// Initialize the game when the page loads
+window.onload = initGame;
