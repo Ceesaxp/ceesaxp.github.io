@@ -7,15 +7,23 @@ tgApp.enableClosingConfirmation();
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score-display');
+const winsDisplay = document.getElementById('wins-display');
 const pauseBtn = document.getElementById('pause-btn');
 const cancelBtn = document.getElementById('cancel-btn');
 const gameOver = document.getElementById('game-over');
+const pauseMenu = document.getElementById('pause-menu');
+const resumeBtn = document.getElementById('resume-btn');
+const restartBtn = document.getElementById('restart-btn');
+const restartFromPauseBtn = document.getElementById('restart-from-pause-btn');
+const exitBtn = document.getElementById('exit-btn');
+const exitFromPauseBtn = document.getElementById('exit-from-pause-btn');
 const winnerText = document.getElementById('winner-text');
 
 // Main menu elements
 const mainMenu = document.getElementById('main-menu');
 const playBtn = document.getElementById('play-btn');
-const exitBtn = document.getElementById('exit-btn');
+const playAIBtn = document.getElementById('play-ai-btn');
+const leaderboardBtn = document.getElementById('leaderboard-btn');
 
 // Leaderboard elements
 const leaderboard = document.getElementById('leaderboard');
@@ -27,11 +35,13 @@ let gameHeight = 600;
 const paddleHeight = 10;
 const paddleWidth = 70;
 const ballSize = 8;
-const maxScore = 10;
+const maxScore = 11; // Changed to 11 as requested
 
 // Game state
 let player1Score = 0;
 let player2Score = 0;
+let player1Wins = 0;
+let player2Wins = 0;
 let ballX = gameWidth / 2;
 let ballY = gameHeight / 2;
 let ballSpeedX = 4;
@@ -40,31 +50,34 @@ let player1PaddleX = gameWidth / 2 - paddleWidth / 2;
 let player2PaddleX = gameWidth / 2 - paddleWidth / 2;
 
 let gameRunning = false;
+let gamePaused = false;
 let touchStartX = 0;
 let lastTouch = 0;
 let animationFrameId;
 
+// AI settings
+let aiEnabled = false;
+let aiDifficulty = 0.7; // Error rate: 0 = perfect, 1 = completely random
+let aiReactionRate = 0.05; // How quickly AI reacts (increases with player skill)
+let playerSkillRating = 0;
+let consecutiveHits = 0;
+
 // Set canvas size based on screen
 function resizeCanvas() {
-    // Calculate game dimensions while maintaining aspect ratio
     const containerWidth = window.innerWidth;
     const containerHeight = window.innerHeight * 0.8;
     
     if (containerWidth / containerHeight > gameWidth / gameHeight) {
-        // Height limited
         canvas.height = containerHeight;
         canvas.width = containerHeight * (gameWidth / gameHeight);
     } else {
-        // Width limited
         canvas.width = containerWidth;
         canvas.height = containerWidth * (gameHeight / gameWidth);
     }
     
-    // Adjust game coordinates based on canvas size
     gameWidth = canvas.width;
     gameHeight = canvas.height;
     
-    // Reset paddles and ball positions when resizing
     if (!gameRunning) {
         resetGame();
     }
@@ -81,59 +94,68 @@ function initGame() {
     canvas.addEventListener('touchend', handleTouchEnd);
     
     // Button event listeners
-    playBtn.addEventListener('click', startNewGame);
+    pauseBtn.addEventListener('click', togglePause);
+    cancelBtn.addEventListener('click', confirmCancel);
+    resumeBtn.addEventListener('click', resumeGame);
+    restartBtn.addEventListener('click', startNewGame);
+    restartFromPauseBtn.addEventListener('click', startNewGame);
     exitBtn.addEventListener('click', exitGame);
+    exitFromPauseBtn.addEventListener('click', exitGame);
+    playBtn.addEventListener('click', () => startNewGame(false));
+    playAIBtn.addEventListener('click', () => startNewGame(true));
+    leaderboardBtn.addEventListener('click', showLeaderboard);
     backBtn.addEventListener('click', showMainMenu);
     
-    // Show main menu by default
+    // Show main menu initially
     showMainMenu();
 }
 
-// Show main menu screen
+// Show main menu
 function showMainMenu() {
-    // Hide other screens
     canvas.style.display = 'none';
     scoreDisplay.style.display = 'none';
+    winsDisplay.style.display = 'none';
     pauseBtn.style.display = 'none';
     cancelBtn.style.display = 'none';
     gameOver.style.display = 'none';
+    pauseMenu.style.display = 'none';
+    leaderboard.style.display = 'none';
+    
+    mainMenu.style.display = 'flex';
     
     // Stop game if running
     if (gameRunning) {
         gameRunning = false;
         cancelAnimationFrame(animationFrameId);
     }
-    
-    // Show leaderboard first then main menu
+}
+
+// Show leaderboard
+function showLeaderboard() {
+    mainMenu.style.display = 'none';
     leaderboard.style.display = 'flex';
-    mainMenu.style.display = 'flex';
     
     // Update leaderboard
     LeaderboardUI.display();
 }
 
-// Show game screen
-function showGameScreen() {
-    // Hide other screens
-    mainMenu.style.display = 'none';
-    leaderboard.style.display = 'none';
-    gameOver.style.display = 'none';
-    
-    // Show game elements
-    canvas.style.display = 'block';
-    scoreDisplay.style.display = 'block';
-}
-
 // Game loop
 function gameLoop() {
     if (!gameRunning) return;
-    update();
-    render();
+    if (!gamePaused) {
+        update();
+        render();
+    }
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
 // Update game state
 function update() {
+    // AI paddle movement
+    if (aiEnabled) {
+        controlAIPaddle();
+    }
+    
     // Move the ball
     ballX += ballSpeedX;
     ballY += ballSpeedY;
@@ -173,6 +195,16 @@ function update() {
         
         // Haptic feedback
         tgApp.HapticFeedback.impactOccurred('light');
+        
+        // Increase consecutive hits and player skill when human player hits the ball
+        if (ballY >= gameHeight - paddleHeight - ballSize) {
+            consecutiveHits++;
+            
+            // Adjust AI difficulty based on consecutive hits
+            if (consecutiveHits > 3) {
+                increasePlayerSkill();
+            }
+        }
     }
     
     // Ball out of bounds (scoring)
@@ -182,18 +214,68 @@ function update() {
         updateScore();
         playSound(100, 0.3);
         resetBall();
+        consecutiveHits = 0;
     } else if (ballY > gameHeight) {
         // Player 1 scores
         player1Score++;
         updateScore();
         playSound(100, 0.3);
         resetBall();
+        consecutiveHits = 0;
+        
+        // Reduce player skill slightly when they miss
+        if (aiEnabled) {
+            playerSkillRating = Math.max(0, playerSkillRating - 0.5);
+            updateAIDifficulty();
+        }
     }
     
     // Check for game over
     if (player1Score >= maxScore || player2Score >= maxScore) {
         endGame();
     }
+}
+
+// AI paddle control
+function controlAIPaddle() {
+    // Target position where the AI wants to move
+    let targetX;
+    
+    // If ball is moving toward AI, track it with some error
+    if (ballSpeedY < 0) {
+        // Calculate perfect position (middle of paddle aligned with ball)
+        const perfectX = ballX - (paddleWidth / 2);
+        
+        // Add error based on difficulty
+        const errorAmount = aiDifficulty * paddleWidth * 1.5;
+        const randomError = (Math.random() * 2 - 1) * errorAmount;
+        targetX = perfectX + randomError;
+        
+        // Move toward target position based on reaction rate
+        player1PaddleX += (targetX - player1PaddleX) * aiReactionRate;
+    } else {
+        // If ball is moving away, gradually move toward center
+        targetX = (gameWidth - paddleWidth) / 2;
+        player1PaddleX += (targetX - player1PaddleX) * 0.02;
+    }
+    
+    // Keep paddle within bounds
+    player1PaddleX = Math.max(0, Math.min(gameWidth - paddleWidth, player1PaddleX));
+}
+
+// Increase player skill rating
+function increasePlayerSkill() {
+    playerSkillRating += 0.2;
+    updateAIDifficulty();
+}
+
+// Update AI difficulty based on player skill
+function updateAIDifficulty() {
+    // Decrease error rate as player skill increases
+    aiDifficulty = Math.max(0.1, 0.7 - (playerSkillRating * 0.05));
+    
+    // Increase reaction rate as player skill increases
+    aiReactionRate = Math.min(0.2, 0.05 + (playerSkillRating * 0.01));
 }
 
 // Render game objects
@@ -258,7 +340,7 @@ function resetBall() {
     ballSpeedY = (Math.random() > 0.5 ? 4 : -4) * (0.8 + Math.random() * 0.4);
 }
 
-// Reset game state
+// Reset single game state
 function resetGame() {
     player1Score = 0;
     player2Score = 0;
@@ -266,6 +348,19 @@ function resetGame() {
     player2PaddleX = gameWidth / 2 - paddleWidth / 2;
     resetBall();
     updateScore();
+    updateWins();
+}
+
+// Reset entire match (including wins)
+function resetMatch() {
+    resetGame();
+    player1Wins = 0;
+    player2Wins = 0;
+    playerSkillRating = 0;
+    aiDifficulty = 0.7;
+    aiReactionRate = 0.05;
+    consecutiveHits = 0;
+    updateWins();
 }
 
 // Update score display
@@ -273,24 +368,35 @@ function updateScore() {
     scoreDisplay.textContent = `${player1Score} - ${player2Score}`;
 }
 
+// Update wins display
+function updateWins() {
+    winsDisplay.textContent = `WINS: ${player1Wins} - ${player2Wins}`;
+}
+
 // Handle touch start
 function handleTouchStart(e) {
     e.preventDefault();
     const touch = e.touches[0];
     touchStartX = touch.clientX;
-    lastTouch = touch.clientY < window.innerHeight / 2 ? 1 : 2; // 1 for top paddle, 2 for bottom
+    
+    // If AI is enabled, only control bottom paddle
+    if (aiEnabled) {
+        lastTouch = 2;
+    } else {
+        lastTouch = touch.clientY < window.innerHeight / 2 ? 1 : 2; // 1 for top paddle, 2 for bottom
+    }
 }
 
 // Handle touch move
 function handleTouchMove(e) {
     e.preventDefault();
-    if (gameRunning) {
+    if (!gamePaused && gameRunning) {
         const touch = e.touches[0];
         const deltaX = touch.clientX - touchStartX;
         touchStartX = touch.clientX;
         
         // Determine which paddle to move based on touch position
-        if (lastTouch === 1) {
+        if (lastTouch === 1 && !aiEnabled) {
             player1PaddleX += deltaX;
         } else {
             player2PaddleX += deltaX;
@@ -307,16 +413,43 @@ function handleTouchEnd(e) {
     e.preventDefault();
 }
 
+// Toggle pause state
+function togglePause() {
+    gamePaused = !gamePaused;
+    if (gamePaused) {
+        pauseMenu.style.display = 'flex';
+    } else {
+        pauseMenu.style.display = 'none';
+    }
+}
+
+// Resume game from pause
+function resumeGame() {
+    gamePaused = false;
+    pauseMenu.style.display = 'none';
+}
+
+// Confirm game cancellation
+function confirmCancel() {
+    if (confirm('Are you sure you want to exit the game?')) {
+        exitGame();
+    }
+}
+
 // End the game
 function endGame() {
     gameRunning = false;
     gameOver.style.display = 'flex';
     
+    // Update win counts
     if (player1Score >= maxScore) {
-        winnerText.textContent = 'PLAYER 1 WINS';
+        player1Wins++;
+        winnerText.textContent = aiEnabled ? 'AI WINS' : 'PLAYER 1 WINS';
     } else {
-        winnerText.textContent = 'PLAYER 2 WINS';
+        player2Wins++;
+        winnerText.textContent = aiEnabled ? 'YOU WIN' : 'PLAYER 2 WINS';
     }
+    updateWins();
     
     // Victory sound
     playSound(440, 0.2);
@@ -326,19 +459,35 @@ function endGame() {
     // Notify Telegram Mini App
     tgApp.HapticFeedback.notificationOccurred('success');
     
-    // Save score to leaderboard
-    const winnerScore = Math.max(player1Score, player2Score);
-    if (ScoreManager.isHighScore(winnerScore)) {
-        ScoreManager.saveScore('PLAYER', winnerScore);
-        TelegramCloudStorage.backupToTelegram();
+    // Save score to leaderboard if player beats AI
+    if (aiEnabled && player2Score >= maxScore) {
+        const winnerScore = player2Score;
+        if (ScoreManager.isHighScore(winnerScore)) {
+            ScoreManager.saveScore('PLAYER', winnerScore);
+            TelegramCloudStorage.backupToTelegram();
+        }
     }
 }
 
 // Start a new game
-function startNewGame() {
+function startNewGame(withAI = false) {
     resetGame();
-    showGameScreen();
+    aiEnabled = withAI;
+    
     gameRunning = true;
+    gamePaused = false;
+    
+    mainMenu.style.display = 'none';
+    leaderboard.style.display = 'none';
+    gameOver.style.display = 'none';
+    pauseMenu.style.display = 'none';
+    
+    canvas.style.display = 'block';
+    scoreDisplay.style.display = 'block';
+    winsDisplay.style.display = 'block';
+    pauseBtn.style.display = 'inline-block';
+    cancelBtn.style.display = 'inline-block';
+    
     cancelAnimationFrame(animationFrameId);
     gameLoop();
 }
@@ -347,7 +496,8 @@ function startNewGame() {
 function exitGame() {
     gameRunning = false;
     cancelAnimationFrame(animationFrameId);
-    tgApp.close();
+    resetMatch();
+    showMainMenu();
 }
 
 // Initialize the game when the page loads
