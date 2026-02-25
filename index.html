@@ -1,13 +1,1122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>home</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Andrei Popov — Ships Code, Asks Questions Later</title>
+  <meta name="description" content="Open source projects by Andrei Popov. macOS apps, CLI tools, calendars, and niche utilities that actually work.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #07070d;
+      --bg-raised: #0e0e18;
+      --bg-card: #111120;
+      --bg-card-hover: #16162a;
+      --border: #1e1e35;
+      --border-glow: #2a2a50;
+      --text: #d8d8e8;
+      --text-muted: #6a6a88;
+      --text-dim: #44445a;
+      --green: #00ff88;
+      --green-dim: #00cc6a;
+      --pink: #ff3366;
+      --cyan: #00ccff;
+      --yellow: #ffd700;
+      --orange: #ff8844;
+      --purple: #aa66ff;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --grid-color: rgba(30, 30, 60, 0.5);
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-glow) var(--bg);
+    }
+
+    body {
+      font-family: var(--font-mono);
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Dot Grid Background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(circle, var(--grid-color) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Scanline overlay ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── Navigation ── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(7, 7, 13, 0.85);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      transition: box-shadow 0.3s ease;
+    }
+
+    nav.scrolled {
+      box-shadow: 0 4px 30px rgba(0, 255, 136, 0.04);
+    }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--green);
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-logo span {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 6px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .nav-links a:hover {
+      color: var(--green);
+      background: rgba(0, 255, 136, 0.06);
+      border-color: rgba(0, 255, 136, 0.15);
+    }
+
+    .nav-pong {
+      color: var(--pink) !important;
+      font-style: italic;
+    }
+
+    .nav-pong:hover {
+      color: var(--pink) !important;
+      background: rgba(255, 51, 102, 0.08) !important;
+      border-color: rgba(255, 51, 102, 0.2) !important;
+    }
+
+    /* ── Main Container ── */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 140px 0 80px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+
+    .avatar-container {
+      position: relative;
+    }
+
+    .avatar-container::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: conic-gradient(var(--green), var(--cyan), var(--purple), var(--pink), var(--green));
+      animation: avatar-spin 8s linear infinite;
+    }
+
+    @keyframes avatar-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      position: relative;
+      z-index: 1;
+      border: 3px solid var(--bg);
+      display: block;
+    }
+
+    .hero-text h1 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(36px, 6vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -2px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .hero-text h1 .accent {
+      color: var(--green);
+    }
+
+    .hero-tagline {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-style: italic;
+    }
+
+    .hero-tagline .loc {
+      color: var(--cyan);
+    }
+
+    .hero-meta {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+
+    .hero-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hero-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.25s ease;
+      background: var(--bg-raised);
+    }
+
+    .hero-link:hover {
+      border-color: var(--green);
+      color: var(--green);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .hero-link svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ── Stats Bar ── */
+    .stats-bar {
+      display: flex;
+      gap: 32px;
+      padding: 20px 0 60px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-value {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 28px;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .stat-value .unit {
+      font-size: 14px;
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-top: 4px;
+    }
+
+    /* ── Section ── */
+    .section {
+      padding: 60px 0 20px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-icon {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 24px;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .section-slug {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    /* ── Project Cards ── */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-glow);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 0 60px rgba(0, 255, 136, 0.03);
+      transform: translateY(-2px);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .card-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 18px;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .card-badges {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 5px;
+      letter-spacing: 0.5px;
+      line-height: 1;
+    }
+
+    .badge-lang {
+      background: rgba(0, 204, 255, 0.12);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 204, 255, 0.2);
+    }
+
+    .badge-lang.swift {
+      background: rgba(255, 136, 68, 0.12);
+      color: var(--orange);
+      border-color: rgba(255, 136, 68, 0.2);
+    }
+
+    .badge-lang.go {
+      background: rgba(0, 204, 255, 0.12);
+      color: var(--cyan);
+      border-color: rgba(0, 204, 255, 0.2);
+    }
+
+    .badge-lang.python {
+      background: rgba(255, 215, 0, 0.12);
+      color: var(--yellow);
+      border-color: rgba(255, 215, 0, 0.2);
+    }
+
+    .badge-lang.javascript {
+      background: rgba(255, 215, 0, 0.15);
+      color: #f0db4f;
+      border-color: rgba(240, 219, 79, 0.25);
+    }
+
+    .badge-lang.applescript {
+      background: rgba(170, 102, 255, 0.12);
+      color: var(--purple);
+      border-color: rgba(170, 102, 255, 0.2);
+    }
+
+    .badge-stars {
+      background: rgba(255, 215, 0, 0.1);
+      color: var(--yellow);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .card-desc strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .card-links {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .card-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      transition: all 0.2s ease;
+    }
+
+    .card-link:hover {
+      color: var(--green);
+      border-color: rgba(0, 255, 136, 0.3);
+      background: rgba(0, 255, 136, 0.05);
+    }
+
+    .card-link.homepage {
+      color: var(--cyan);
+      border-color: rgba(0, 204, 255, 0.2);
+    }
+
+    .card-link.homepage:hover {
+      color: var(--cyan);
+      border-color: rgba(0, 204, 255, 0.4);
+      background: rgba(0, 204, 255, 0.06);
+    }
+
+    .card-link.info-page {
+      color: var(--purple);
+      border-color: rgba(170, 102, 255, 0.2);
+    }
+
+    .card-link.info-page:hover {
+      color: var(--purple);
+      border-color: rgba(170, 102, 255, 0.4);
+      background: rgba(170, 102, 255, 0.06);
+    }
+
+    .card-link svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .card-note {
+      font-size: 11px;
+      font-style: italic;
+      color: var(--text-dim);
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+    }
+
+    /* ── Featured card (Gridka, MeetWhen) ── */
+    .card.featured {
+      grid-column: span 1;
+      border-color: var(--border-glow);
+    }
+
+    .card.featured::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 24px;
+      right: 24px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--green-dim), transparent);
+    }
+
+    .card.most-starred {
+      border-color: rgba(255, 215, 0, 0.2);
+    }
+
+    .card.most-starred::before {
+      background: linear-gradient(90deg, transparent, var(--yellow), transparent);
+      opacity: 0.6;
+    }
+
+    /* ── Scroll Reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Footer ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 80px auto 0;
+      padding: 32px 24px 48px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-left {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .footer-right a {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-right a:hover {
+      color: var(--green);
+    }
+
+    .pong-link {
+      color: var(--pink) !important;
+      font-style: italic;
+    }
+
+    /* ── Mobile Nav Toggle ── */
+    .nav-toggle {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .hero {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 24px;
+        padding: 100px 0 48px;
+      }
+
+      .avatar-container {
+        justify-self: center;
+      }
+
+      .avatar {
+        width: 96px;
+        height: 96px;
+      }
+
+      .hero-links {
+        justify-content: center;
+      }
+
+      .stats-bar {
+        justify-content: center;
+        gap: 24px;
+        text-align: center;
+      }
+
+      .projects-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-toggle {
+        display: block;
+      }
+
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 56px;
+        left: 0;
+        right: 0;
+        background: rgba(7, 7, 13, 0.96);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border);
+        flex-direction: column;
+        padding: 12px 16px;
+        gap: 2px;
+      }
+
+      .nav-links.open {
+        display: flex;
+      }
+
+      .nav-links a {
+        padding: 10px 12px;
+      }
+
+      .section {
+        padding: 40px 0 12px;
+      }
+
+      .section-title {
+        font-size: 20px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .hero-text h1 {
+        font-size: 32px;
+        letter-spacing: -1px;
+      }
+
+      .hero-link {
+        font-size: 12px;
+        padding: 7px 12px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <ul>
-        <li><a href="/pong">Pong Game</a></li>
-    </ul>
+
+  <!-- ── Nav ── -->
+  <nav id="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">ceesaxp<span>/</span></a>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">☰</button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#macos">macOS Apps</a></li>
+        <li><a href="#calendars">Calendars</a></li>
+        <li><a href="#cli">CLI Tools</a></li>
+        <li><a href="#audio">Audio</a></li>
+        <li><a href="#finance">Finance</a></li>
+        <li><a href="/pong" class="nav-pong">bored?</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- ── Hero ── -->
+    <section class="hero">
+      <div class="avatar-container">
+        <img class="avatar" src="https://avatars.githubusercontent.com/u/67934?v=4"
+             alt="Andrei Popov" width="120" height="120">
+      </div>
+      <div class="hero-text">
+        <h1>Andrei <span class="accent">Popov</span></h1>
+        <p class="hero-tagline">"Born in Russia. Roaming around." &nbsp;📍 <span class="loc">Belgrade, Serbia</span></p>
+        <p class="hero-meta">Digital Space Ventures · ships code, asks questions later</p>
+        <div class="hero-links">
+          <a href="https://github.com/Ceesaxp" class="hero-link" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
+          </a>
+          <a href="https://www.ceesaxp.org" class="hero-link" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+            Blog
+          </a>
+          <a href="https://x.com/ceesaxp" class="hero-link" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            @ceesaxp
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Stats ── -->
+    <div class="stats-bar reveal">
+      <div class="stat">
+        <div class="stat-value">11 <span class="unit">repos</span></div>
+        <div class="stat-label">Open Source</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">5 <span class="unit">langs</span></div>
+        <div class="stat-label">Go · Python · Swift · JS · AppleScript</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">25 <span class="unit">★</span></div>
+        <div class="stat-label">Total Stars</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">∞ <span class="unit">☕</span></div>
+        <div class="stat-label">Coffee Consumed</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- ── macOS Native Apps ── -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section class="section" id="macos">
+      <div class="section-header reveal">
+        <span class="section-icon">🖥️</span>
+        <h2 class="section-title">macOS Native Apps</h2>
+        <span class="section-slug">— real apps, no Electron here</span>
+      </div>
+      <div class="projects-grid">
+
+        <div class="card featured reveal">
+          <div class="card-top">
+            <span class="card-name">Gridka</span>
+            <div class="card-badges">
+              <span class="badge badge-lang swift">Swift</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            🦆 A <strong>blazing-fast</strong> native macOS CSV viewer powered by DuckDB.
+            Opens <strong>100M+ row files</strong> while staying under 500MB RAM.
+            Virtual scrolling at 60fps, column filtering, multi-tab, cell editing.
+            The CSV tool your Mac deserves.
+          </p>
+          <div class="card-links">
+            <a href="https://github.com/Ceesaxp/gridka" class="card-link" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              Source
+            </a>
+            <a href="/gridka/" class="card-link info-page">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Privacy &amp; Info
+            </a>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-top">
+            <span class="card-name">Time Utility</span>
+            <div class="card-badges">
+              <span class="badge badge-lang swift">Swift</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            ⏱️ Resurrection of the beloved <strong>Timer Utility.app</strong> by JR Productions.
+            A macOS timer &amp; stopwatch app rebuilt in modern Swift. Because sometimes you just need a good timer that isn't a website.
+          </p>
+          <div class="card-links">
+            <a href="https://github.com/Ceesaxp/time-utility-new" class="card-link" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              Source
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- ── Calendar & Scheduling ── -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section class="section" id="calendars">
+      <div class="section-header reveal">
+        <span class="section-icon">📅</span>
+        <h2 class="section-title">Calendar &amp; Scheduling</h2>
+        <span class="section-slug">— time is money, organize it</span>
+      </div>
+      <div class="projects-grid">
+
+        <div class="card featured reveal">
+          <div class="card-top">
+            <span class="card-name">MeetWhen</span>
+            <div class="card-badges">
+              <span class="badge badge-stars">★ 2</span>
+              <span class="badge badge-lang go">Go</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            📆 Self-hosted <strong>Calendly killer</strong>. Multi-calendar integration (Google, iCloud, CalDAV),
+            automatic video-conference links, booking management, email notifications.
+            Your meetings, your server, your rules.
+          </p>
+          <div class="card-links">
+            <a href="https://github.com/Ceesaxp/meet-when" class="card-link" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              Source
+            </a>
+            <a href="https://meetwhen.live" class="card-link homepage" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              meetwhen.live
+            </a>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-top">
+            <span class="card-name">Year Grid Calendar</span>
+            <div class="card-badges">
+              <span class="badge badge-lang python">Python</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            🗓️ Generate gorgeous <strong>A1-sized yearly calendar PDFs</strong>. Custom fonts, event support,
+            weekend highlighting, next-year preview. Available as CLI + web service. Print it. Hang it. Plan your year.
+          </p>
+          <div class="card-links">
+            <a href="https://github.com/Ceesaxp/year-grid-calendar" class="card-link" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              Source
+            </a>
+            <a href="https://year-grid.ceesaxp.org" class="card-link homepage" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              year-grid.ceesaxp.org
+            </a>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-top">
+            <span class="card-name">YAAG Calendar</span>
+            <div class="card-badges">
+              <span class="badge badge-lang javascript">JavaScript</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            👁️ <strong>Year-At-A-Glance</strong> planner as a web app. Built with Web Components &amp; Shadow DOM.
+            Drag events, recurring schedules, swim-lane layout, PDF export. See your whole year at once.
+          </p>
+          <div class="card-links">
+            <a href="https://github.com/Ceesaxp/yaag-calendar" class="card-link" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              Source
+            </a>
+            <a href="https://yaag.ceesaxp.org" class="card-link homepage" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              yaag.ceesaxp.org
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- ── CLI Tools ── -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section class="section" id="cli">
+      <div class="section-header reveal">
+        <span class="section-icon">🔧</span>
+        <h2 class="section-title">CLI Tools</h2>
+        <span class="section-slug">— pipe-friendly, zero-bloat</span>
+      </div>
+      <div class="projects-grid">
+
+        <div class="card reveal">
+          <div class="card-top">
+            <span class="card-name">xe.com</span>
+            <div class="card-badges">
+              <span class="badge badge-lang go">Go</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            💱 Fetch <strong>xe.com exchange rates</strong> from the terminal. Any ISO-4217 currency pair, historical date lookups,
+            math expressions, shell-scriptable output. Your terminal is your trading floor.
+          </p>
+          <div class="card-links">
+            <a href="https://github.com/Ceesaxp/xe.com" class="card-link" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              Source
+            </a>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-top">
+            <span class="card-name">QR-Gen</span>
+            <div class="card-badges">
+              <span class="badge badge-lang go">Go</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            📱 Generate <strong>QR codes</strong> from text, URLs, files, or stdin. Custom foreground/background colors,
+            size control, content length validation. Reads from files or pipes — the Unix way.
+          </p>
+          <div class="card-links">
+            <a href="https://github.com/Ceesaxp/qr-gen" class="card-link" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              Source
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- ── Audio & Media ── -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section class="section" id="audio">
+      <div class="section-header reveal">
+        <span class="section-icon">🎵</span>
+        <h2 class="section-title">Audio &amp; Media</h2>
+        <span class="section-slug">— because broken tags ruin everything</span>
+      </div>
+      <div class="projects-grid">
+
+        <div class="card most-starred reveal">
+          <div class="card-top">
+            <span class="card-name">AS-Convert-Russian</span>
+            <div class="card-badges">
+              <span class="badge badge-stars">★ 22</span>
+              <span class="badge badge-lang applescript">AppleScript</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            🏆 <strong>The OG problem solver</strong> and most-starred repo!
+            Fixes corrupted Russian/Cyrillic MP3 tags in iTunes &amp; Apple Music.
+            Translates broken cp-1251 encoding back to proper Unicode.
+            If you've ever seen hieroglyphics instead of Кириллица — this is your fix.
+          </p>
+          <div class="card-links">
+            <a href="https://github.com/Ceesaxp/as-convert-russian" class="card-link" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              Source
+            </a>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-top">
+            <span class="card-name">A-ABCSDST</span>
+            <div class="card-badges">
+              <span class="badge badge-lang python">Python</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            📚 <strong>Automated Audiobook Chapter Detection &amp; Segmentation</strong>.
+            Uses Vosk speech recognition to find chapter markers in raw audiobook rips,
+            then segments, tags, and optionally creates M4B files. Supports English + Russian.
+          </p>
+          <div class="card-links">
+            <a href="https://github.com/Ceesaxp/a-abcsdst" class="card-link" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              Source
+            </a>
+          </div>
+          <p class="card-note">⚡ Niche use-case — but if you have a pile of old audiobook rips, this is gold.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- ── Finance & Accounting ── -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section class="section" id="finance">
+      <div class="section-header reveal">
+        <span class="section-icon">💰</span>
+        <h2 class="section-title">Finance &amp; Accounting</h2>
+        <span class="section-slug">— spreadsheets are for amateurs</span>
+      </div>
+      <div class="projects-grid">
+
+        <div class="card reveal">
+          <div class="card-top">
+            <span class="card-name">Liqpref Waterfall</span>
+            <div class="card-badges">
+              <span class="badge badge-stars">★ 1</span>
+              <span class="badge badge-lang python">Python</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            📊 <strong>Liquidation preference waterfall calculator</strong> for startup exits.
+            Models stacked preferences, participation rights, caps, options &amp; warrants,
+            Nash equilibrium conversion decisions. Parse cap tables from CSV. Know your payout before the lawyers do.
+          </p>
+          <div class="card-links">
+            <a href="https://github.com/Ceesaxp/liqpref-waterfall-py" class="card-link" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              Source
+            </a>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-top">
+            <span class="card-name">RBRS XML Statements</span>
+            <div class="card-badges">
+              <span class="badge badge-lang python">Python</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            🏦 Convert <strong>Raiffeisen Bank Serbia</strong> XML account statements to Plain Text Accounting format.
+            Auto-categorizes transactions via configurable rules. Niche but indispensable if you're doing PTA in Serbia.
+          </p>
+          <div class="card-links">
+            <a href="https://github.com/Ceesaxp/rbrs-xml-statements" class="card-link" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              Source
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Footer ── -->
+  <footer>
+    <div class="footer-left">
+      Built with ☕ and stubbornness &nbsp;·&nbsp; © 2025 Andrei Popov
+    </div>
+    <div class="footer-right">
+      <a href="https://github.com/Ceesaxp">GitHub</a>
+      <a href="https://www.ceesaxp.org">Blog</a>
+      <a href="/pong" class="pong-link">🏓 Pong!</a>
+    </div>
+  </footer>
+
+  <script>
+    // Nav scroll effect
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 20);
+    }, { passive: true });
+
+    // Mobile nav toggle
+    document.getElementById('navToggle').addEventListener('click', () => {
+      document.getElementById('navLinks').classList.toggle('open');
+    });
+
+    // Close mobile nav on link click
+    document.querySelectorAll('.nav-links a').forEach(a => {
+      a.addEventListener('click', () => {
+        document.getElementById('navLinks').classList.remove('open');
+      });
+    });
+
+    // Scroll reveal with stagger
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.classList.add('visible');
+          }, i * 60);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
 </body>
-</html> 
+</html>
