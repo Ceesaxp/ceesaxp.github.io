@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>xe.com — Currency Exchange Rates from Your Terminal</title>
+  <meta name="description" content="A Go CLI utility to fetch xe.com exchange rates for any currency pair and date. Shell-scriptable, pipe-friendly.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #07070d;
+      --bg-raised: #0e0e18;
+      --bg-card: #111120;
+      --border: #1e1e35;
+      --border-glow: #2a2a50;
+      --text: #d8d8e8;
+      --text-muted: #6a6a88;
+      --text-dim: #44445a;
+      --green: #00ff88;
+      --cyan: #00ccff;
+      --yellow: #ffd700;
+      --orange: #ff8844;
+      --pink: #ff3366;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --grid-color: rgba(30, 30, 60, 0.5);
+    }
+
+    html { scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--border-glow) var(--bg); }
+
+    body {
+      font-family: var(--font-mono); font-weight: 400; font-size: 14px; line-height: 1.65;
+      color: var(--text); background: var(--bg);
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle, var(--grid-color) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none; z-index: 0;
+    }
+
+    a { color: var(--green); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--cyan); }
+    code { font-family: var(--font-mono); font-size: 13px; }
+
+    .container { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Top Bar ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(7, 7, 13, 0.88);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border); padding: 14px 24px;
+    }
+
+    .topbar-inner { max-width: 860px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+    .back-link { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .back-link:hover { color: var(--green); }
+    .topbar-links { display: flex; gap: 12px; }
+    .topbar-links a { font-size: 12px; color: var(--text-dim); padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; }
+    .topbar-links a:hover { color: var(--green); border-color: rgba(0, 255, 136, 0.3); }
+
+    /* ── Hero ── */
+    .hero { padding: 80px 0 48px; text-align: center; }
+    .hero-icon { font-size: 56px; margin-bottom: 16px; }
+
+    h1 {
+      font-family: var(--font-display); font-weight: 800;
+      font-size: clamp(36px, 5vw, 52px);
+      color: #fff; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 8px;
+    }
+
+    h1 .accent { color: var(--cyan); }
+
+    .hero-sub { font-size: 15px; color: var(--text-muted); max-width: 520px; margin: 0 auto 24px; }
+
+    .hero-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+    .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 5px; letter-spacing: 0.5px; }
+    .badge-cyan { background: rgba(0, 204, 255, 0.12); color: var(--cyan); border: 1px solid rgba(0, 204, 255, 0.2); }
+    .badge-green { background: rgba(0, 255, 136, 0.1); color: var(--green); border: 1px solid rgba(0, 255, 136, 0.2); }
+
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      font-family: var(--font-mono); text-decoration: none;
+      transition: all 0.25s ease; border: 1px solid var(--border);
+    }
+
+    .btn-primary { background: var(--cyan); color: var(--bg); border-color: var(--cyan); }
+    .btn-primary:hover { background: #44ddff; color: var(--bg); box-shadow: 0 0 24px rgba(0, 204, 255, 0.2); }
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── Sections ── */
+    section { padding: 48px 0 24px; }
+
+    h2 {
+      font-family: var(--font-display); font-weight: 700; font-size: 22px;
+      color: #fff; letter-spacing: -0.3px; margin-bottom: 20px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    }
+
+    h2 .emoji { margin-right: 8px; }
+
+    /* ── Terminal Demo ── */
+    .terminal {
+      background: #0c0c14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .terminal-bar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 14px;
+      background: var(--bg-raised);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+
+    .terminal-dot.red { background: #ff5f56; }
+    .terminal-dot.yellow { background: #ffbd2e; }
+    .terminal-dot.green { background: #27c93f; }
+
+    .terminal-title {
+      flex: 1; text-align: center; font-size: 11px; color: var(--text-dim);
+    }
+
+    .terminal-body {
+      padding: 16px 20px;
+      font-size: 13px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .terminal-body .prompt { color: var(--cyan); }
+    .terminal-body .cmd { color: var(--green); }
+    .terminal-body .arg { color: var(--orange); }
+    .terminal-body .output { color: var(--text-muted); }
+    .terminal-body .comment { color: var(--text-dim); font-style: italic; }
+
+    /* ── Options Table ── */
+    .options-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .options-table th {
+      text-align: left; color: var(--text-dim); font-weight: 600;
+      text-transform: uppercase; font-size: 11px; letter-spacing: 1px;
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+    }
+
+    .options-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(30, 30, 53, 0.5);
+      vertical-align: top;
+    }
+
+    .options-table tr:hover td { background: var(--bg-card); }
+
+    .options-table code {
+      color: var(--cyan);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    /* ── Info Card ── */
+    .info-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+      font-size: 14px; color: var(--text-muted); line-height: 1.7;
+    }
+
+    .info-card strong { color: var(--text); font-weight: 500; }
+    .info-card p { margin-bottom: 12px; }
+    .info-card p:last-child { margin-bottom: 0; }
+
+    .env-block {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 16px; margin-top: 12px;
+      font-size: 12px; color: var(--green); overflow-x: auto;
+      white-space: pre; line-height: 1.6;
+    }
+
+    .env-block .comment { color: var(--text-dim); }
+
+    /* ── Footer ── */
+    footer {
+      position: relative; z-index: 1; max-width: 860px; margin: 60px auto 0;
+      padding: 24px 24px 40px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-dim);
+    }
+
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--green); }
+
+    @media (max-width: 600px) {
+      .hero { padding: 60px 0 32px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      .topbar-links { display: none; }
+      .options-table { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a href="/" class="back-link">← ceesaxp.github.io</a>
+      <div class="topbar-links">
+        <a href="#examples">Examples</a>
+        <a href="#options">Options</a>
+        <a href="#env">Environment</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="hero">
+      <div class="hero-icon">💱</div>
+      <h1><span class="accent">xe.com</span></h1>
+      <p class="hero-sub">
+        Fetch xe.com exchange rates from your terminal. Any currency pair, any date. Shell-scriptable.
+      </p>
+      <div class="hero-badges">
+        <span class="badge badge-cyan">Go</span>
+        <span class="badge badge-green">ISO-4217</span>
+      </div>
+      <div class="hero-actions">
+        <a href="https://github.com/Ceesaxp/xe.com" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Terminal Demo ── -->
+    <section id="examples">
+      <h2><span class="emoji">🖥️</span> In Action</h2>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="terminal-dot red"></div>
+          <div class="terminal-dot yellow"></div>
+          <div class="terminal-dot green"></div>
+          <span class="terminal-title">Terminal — zsh</span>
+        </div>
+        <div class="terminal-body">
+<span class="comment"># Full form — USD to GBP on a specific date</span>
+<span class="prompt">$</span> <span class="cmd">xe.com</span> <span class="arg">-f USD -t GBP -d 2024-03-17</span>
+<span class="output">1 USD = 0.7891 GBP (17 Mar 2024)</span>
+
+<span class="comment"># Short form — same thing, less typing</span>
+<span class="prompt">$</span> <span class="cmd">xe.com</span> <span class="arg">usd gbp 2024-03-17</span>
+<span class="output">1 USD = 0.7891 GBP (17 Mar 2024)</span>
+
+<span class="comment"># Convert an amount</span>
+<span class="prompt">$</span> <span class="cmd">xe.com</span> <span class="arg">eur usd 2024-01-15 1500</span>
+<span class="output">1500 EUR = 1639.50 USD (15 Jan 2024)</span>
+
+<span class="comment"># Strip output for shell scripting</span>
+<span class="prompt">$</span> <span class="cmd">echo</span> <span class="arg">"$(xe.com -s rub eur 2024-05-10) * 1234.56"</span> | <span class="cmd">bc</span>
+<span class="output">11.85</span>
+
+<span class="comment"># Math expressions for the amount</span>
+<span class="prompt">$</span> <span class="cmd">xe.com</span> <span class="arg">-f USD -t EUR -d 2024-06-01 -m "1500+2300+750"</span>
+<span class="output">4550 USD = 4186.00 EUR (01 Jun 2024)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Options ── -->
+    <section id="options">
+      <h2><span class="emoji">⚙️</span> Options</h2>
+      <table class="options-table">
+        <thead>
+          <tr><th>Flag</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>-f, --from-ccy</code></td>
+            <td>Source currency (ISO-4217 code)</td>
+            <td>RUB</td>
+          </tr>
+          <tr>
+            <td><code>-t, --to-ccy</code></td>
+            <td>Target currency (ISO-4217 code)</td>
+            <td>USD</td>
+          </tr>
+          <tr>
+            <td><code>-d, --date</code></td>
+            <td>Date for the rate (YYYY-MM-DD)</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><code>-a, --amount</code></td>
+            <td>Amount to convert</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><code>-m, --math</code></td>
+            <td>Calculate amount from expression, then convert</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><code>-s, --strip-extra</code></td>
+            <td>Output rate only — perfect for piping to <code>bc</code></td>
+            <td>off</td>
+          </tr>
+          <tr>
+            <td><code>-R, --show-rate</code></td>
+            <td>Always display the exchange rate</td>
+            <td>off</td>
+          </tr>
+          <tr>
+            <td><code>-v, --version</code></td>
+            <td>Print version and exit</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="info-card" style="margin-top: 20px;">
+        <p>
+          <strong>Short forms</strong> are also supported for quick use:
+        </p>
+        <p>
+          <code style="color:var(--cyan)">xe.com &lt;DATE&gt;</code> — uses default currency pair<br>
+          <code style="color:var(--cyan)">xe.com &lt;FROM&gt; &lt;TO&gt; &lt;DATE&gt;</code> — explicit pair<br>
+          <code style="color:var(--cyan)">xe.com &lt;FROM&gt; &lt;TO&gt; &lt;DATE&gt; &lt;AMOUNT&gt;</code> — with conversion
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Environment ── -->
+    <section id="env">
+      <h2><span class="emoji">🌍</span> Environment Variables</h2>
+      <div class="info-card">
+        <p>
+          Set <strong>default currency pair</strong> via environment variables so you don't have to type them every time.
+          Add these to your <code>.bashrc</code> or <code>.zshrc</code>:
+        </p>
+        <div class="env-block"><span class="comment"># Default pair: EUR/USD</span>
+export XE_CCY_FROM=EUR
+export XE_CCY_TO=USD
+
+<span class="comment"># Now just specify the date</span>
+xe.com 2024-03-17</div>
+      </div>
+    </section>
+
+    <!-- ── Install ── -->
+    <section>
+      <h2><span class="emoji">📦</span> Installation</h2>
+      <div class="info-card">
+        <p>Built with <strong>Go</strong>. Clone and build:</p>
+        <div class="env-block">git clone https://github.com/Ceesaxp/xe.com.git
+cd xe.com
+go build -o xe.com .
+cp xe.com ~/bin/   <span class="comment"># or wherever you keep your tools</span></div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <span>xe.com · by <a href="/">Andrei Popov</a></span>
+    <a href="https://github.com/Ceesaxp/xe.com">GitHub</a>
+  </footer>
+
+</body>
+</html>

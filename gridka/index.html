@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gridka — Blazing-Fast CSV Viewer for macOS</title>
+  <meta name="description" content="A native macOS CSV viewer powered by DuckDB. Opens 100M+ row files with instant scrolling, sorting, filtering, and search.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #07070d;
+      --bg-raised: #0e0e18;
+      --bg-card: #111120;
+      --bg-card-hover: #16162a;
+      --border: #1e1e35;
+      --border-glow: #2a2a50;
+      --text: #d8d8e8;
+      --text-muted: #6a6a88;
+      --text-dim: #44445a;
+      --green: #00ff88;
+      --green-dim: #00cc6a;
+      --pink: #ff3366;
+      --cyan: #00ccff;
+      --yellow: #ffd700;
+      --orange: #ff8844;
+      --purple: #aa66ff;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --grid-color: rgba(30, 30, 60, 0.5);
+    }
+
+    html { scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--border-glow) var(--bg); }
+
+    body {
+      font-family: var(--font-mono);
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, var(--grid-color) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    a { color: var(--green); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--cyan); }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Top Bar ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(7, 7, 13, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+    }
+
+    .topbar-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .back-link {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .back-link:hover { color: var(--green); }
+
+    .topbar-links {
+      display: flex;
+      gap: 12px;
+    }
+
+    .topbar-links a {
+      font-size: 12px;
+      color: var(--text-dim);
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .topbar-links a:hover {
+      color: var(--green);
+      border-color: rgba(0, 255, 136, 0.3);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 80px 0 48px;
+      text-align: center;
+    }
+
+    .hero-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(36px, 5vw, 52px);
+      color: #fff;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    h1 .accent { color: var(--green); }
+
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto 24px;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 5px;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-orange { background: rgba(255, 136, 68, 0.15); color: var(--orange); border: 1px solid rgba(255, 136, 68, 0.25); }
+    .badge-blue { background: rgba(0, 136, 255, 0.12); color: #4499ff; border: 1px solid rgba(0, 136, 255, 0.2); }
+    .badge-green { background: rgba(0, 255, 136, 0.1); color: var(--green); border: 1px solid rgba(0, 255, 136, 0.2); }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      text-decoration: none;
+      transition: all 0.25s ease;
+      border: 1px solid var(--border);
+    }
+
+    .btn-primary {
+      background: var(--green);
+      color: var(--bg);
+      border-color: var(--green);
+    }
+
+    .btn-primary:hover {
+      background: #33ffaa;
+      color: var(--bg);
+      box-shadow: 0 0 24px rgba(0, 255, 136, 0.2);
+    }
+
+    .btn-secondary {
+      background: var(--bg-raised);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .btn-appstore {
+      background: var(--bg-card);
+      color: var(--text-dim);
+      border-color: var(--border);
+      cursor: default;
+      font-style: italic;
+    }
+
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── Sections ── */
+    section {
+      padding: 48px 0 24px;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 22px;
+      color: #fff;
+      letter-spacing: -0.3px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h2 .emoji { margin-right: 8px; }
+
+    /* ── Feature Grid ── */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .feature {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      transition: border-color 0.2s;
+    }
+
+    .feature:hover { border-color: var(--border-glow); }
+
+    .feature-title {
+      font-weight: 600;
+      color: #fff;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* ── Why Section ── */
+    .why-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .why-card strong { color: var(--text); font-weight: 500; }
+    .why-card em { color: var(--orange); font-style: normal; }
+
+    /* ── Keyboard Shortcuts ── */
+    .shortcuts-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .shortcuts-table th {
+      text-align: left;
+      color: var(--text-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 1px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .shortcuts-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(30, 30, 53, 0.5);
+    }
+
+    .shortcuts-table tr:hover td { background: var(--bg-card); }
+
+    kbd {
+      display: inline-block;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text);
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    /* ── Install ── */
+    .install-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .install-option {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .install-option h3 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 15px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .install-option p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+
+    .install-option code {
+      display: block;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--green);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .install-option .coming-soon {
+      font-style: italic;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    /* ── Architecture ── */
+    .arch-block {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .arch-block p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .arch-block p:last-child { margin-bottom: 0; }
+    .arch-block strong { color: var(--text); font-weight: 500; }
+
+    .arch-flow {
+      font-size: 12px;
+      color: var(--cyan);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-top: 12px;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 60px auto 0;
+      padding: 24px 24px 40px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--green); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .features, .install-options { grid-template-columns: 1fr; }
+      .hero { padding: 60px 0 32px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      .topbar-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a href="/" class="back-link">← ceesaxp.github.io</a>
+      <div class="topbar-links">
+        <a href="#features">Features</a>
+        <a href="#shortcuts">Shortcuts</a>
+        <a href="#install">Install</a>
+        <a href="privacy.html">Privacy</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="hero">
+      <div class="hero-icon">🦆</div>
+      <h1>Grid<span class="accent">ka</span></h1>
+      <p class="hero-sub">
+        A blazing-fast native macOS CSV viewer powered by DuckDB. Opens files of <strong style="color:#fff">any size</strong> with instant scrolling, sorting, filtering, and search.
+      </p>
+      <div class="hero-badges">
+        <span class="badge badge-orange">Swift 5.10</span>
+        <span class="badge badge-blue">macOS 14+</span>
+        <span class="badge badge-green">MIT License</span>
+      </div>
+      <div class="hero-actions">
+        <a href="https://github.com/Ceesaxp/gridka" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+        <!-- TODO: Replace with actual App Store link once approved -->
+        <span class="btn btn-appstore">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          App Store — coming soon
+        </span>
+        <a href="privacy.html" class="btn btn-secondary">🔒 Privacy Policy</a>
+      </div>
+    </div>
+
+    <!-- ── Why Gridka? ── -->
+    <section>
+      <h2><span class="emoji">🤔</span> Why Gridka?</h2>
+      <div class="why-card">
+        <p>
+          Most CSV tools either <em>choke on large files</em> (Excel, Numbers),
+          <em>consume absurd memory</em> (Electron apps), or <em>lack a GUI entirely</em> (csvkit, xsv).
+        </p>
+        <p>
+          Gridka uses <strong>DuckDB's analytical engine</strong> behind AppKit's <code>NSTableView</code> to handle
+          <strong>100M+ row files</strong> while staying under <strong>500 MB RAM</strong>.
+          Every sort, filter, and search is a SQL query. DuckDB does the heavy lifting.
+        </p>
+        <p>
+          Single-process Swift app. No IPC, no Electron, no web views. Just your Mac doing what it's good at.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Features ── -->
+    <section id="features">
+      <h2><span class="emoji">✨</span> Features</h2>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-title">📂 Open any CSV/TSV</div>
+          <div class="feature-desc">Auto-detects delimiter, encoding, headers, and column types. Just drop your file and go.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">⚡ Virtual Scrolling</div>
+          <div class="feature-desc">60 fps at any file size — only visible rows are in memory. Scroll through millions of rows like butter.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🔄 Column Sorting</div>
+          <div class="feature-desc">Click to sort, Shift+click for multi-column sort. Type-aware ordering for text, numbers, and dates.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🔍 Filtering</div>
+          <div class="feature-desc">Type-aware filters per column — text, numeric, date, and boolean operators. Narrow down millions of rows instantly.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🔎 Global Search</div>
+          <div class="feature-desc">Cmd+F to search across all columns with match highlighting. Find next/previous with Cmd+G.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">📊 Column Management</div>
+          <div class="feature-desc">Resize, reorder, hide/show, pin, and auto-fit columns. Your view, your layout.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🔬 Cell Inspection</div>
+          <div class="feature-desc">Detail pane for long text, URLs, and JSON content. No more squinting at truncated cells.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">✏️ Cell Editing</div>
+          <div class="feature-desc">Double-click to edit, save back to CSV. Quick fixes without leaving the app.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">📑 Multi-Tab</div>
+          <div class="feature-desc">Open multiple files in tabs within a single window. Compare datasets side by side.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">👁️ Quick Look</div>
+          <div class="feature-desc">Preview CSV files right in Finder via the Quick Look extension. Press Space, see data.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Keyboard Shortcuts ── -->
+    <section id="shortcuts">
+      <h2><span class="emoji">⌨️</span> Keyboard Shortcuts</h2>
+      <table class="shortcuts-table">
+        <thead>
+          <tr><th>Shortcut</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><kbd>⌘O</kbd></td><td>Open file</td></tr>
+          <tr><td><kbd>⌘W</kbd></td><td>Close tab</td></tr>
+          <tr><td><kbd>⌘F</kbd></td><td>Toggle search bar</td></tr>
+          <tr><td><kbd>⌘G</kbd> / <kbd>⇧⌘G</kbd></td><td>Find next / previous</td></tr>
+          <tr><td><kbd>⌘C</kbd></td><td>Copy cell value</td></tr>
+          <tr><td><kbd>⇧⌘C</kbd></td><td>Copy entire row</td></tr>
+          <tr><td><kbd>⇧⌘D</kbd></td><td>Toggle detail pane</td></tr>
+          <tr><td>Click header</td><td>Sort ascending / descending / clear</td></tr>
+          <tr><td>Shift+click header</td><td>Multi-column sort</td></tr>
+          <tr><td>Right-click header</td><td>Filter / hide column</td></tr>
+          <tr><td>Double-click divider</td><td>Auto-fit column width</td></tr>
+          <tr><td>Drag &amp; drop</td><td>Open CSV by dragging onto window</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ── Installation ── -->
+    <section id="install">
+      <h2><span class="emoji">📦</span> Installation</h2>
+      <div class="install-options">
+        <div class="install-option">
+          <h3>🍎 Mac App Store</h3>
+          <p class="coming-soon">Coming soon — awaiting approval.</p>
+          <!-- TODO: Add App Store badge/link once approved -->
+        </div>
+        <div class="install-option">
+          <h3>📥 Direct Download</h3>
+          <p>Grab the latest <code>.zip</code> from GitHub Releases, unzip, and drag to <code>/Applications</code>.</p>
+          <a href="https://github.com/Ceesaxp/gridka/releases" class="btn btn-secondary" target="_blank" rel="noopener" style="font-size:12px; padding:7px 14px; margin-top:4px;">Latest Release →</a>
+        </div>
+        <div class="install-option">
+          <h3>🔨 Build from Source</h3>
+          <p>Requires macOS 14+, Xcode 15+, Swift 5.10+, and XcodeGen.</p>
+          <code>git clone https://github.com/Ceesaxp/gridka.git
+cd gridka
+xcodegen generate
+xcodebuild -scheme Gridka -configuration Release build</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Architecture ── -->
+    <section>
+      <h2><span class="emoji">🏗️</span> Architecture</h2>
+      <div class="arch-block">
+        <p>
+          <strong>Single-process Swift app</strong> with DuckDB embedded via C API (static library).
+          No IPC, no Electron, no web views.
+        </p>
+        <p>
+          Every user interaction — sort, filter, search — translates to a <strong>SQL query</strong> executed against DuckDB's
+          in-process analytical engine. The result set is streamed through a row cache into AppKit's native <code>NSTableView</code>.
+        </p>
+        <div class="arch-flow">
+          User interaction → ViewState mutation → SQL generation → DuckDB query → NSTableView reload
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <span>Gridka · by <a href="/">Andrei Popov</a></span>
+    <span>
+      <a href="https://github.com/Ceesaxp/gridka">GitHub</a> ·
+      <a href="privacy.html">Privacy Policy</a>
+    </span>
+  </footer>
+
+</body>
+</html>

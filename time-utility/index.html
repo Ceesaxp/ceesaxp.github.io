@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timer Utility Next — Timers, Alarms &amp; Project Tracking for macOS</title>
+  <meta name="description" content="A modern rebuild of the beloved Timer Utility from the early macOS X era. Countdown timers, alarms, stopwatches, project time tracking, and action chaining.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #07070d;
+      --bg-raised: #0e0e18;
+      --bg-card: #111120;
+      --border: #1e1e35;
+      --border-glow: #2a2a50;
+      --text: #d8d8e8;
+      --text-muted: #6a6a88;
+      --text-dim: #44445a;
+      --green: #00ff88;
+      --cyan: #00ccff;
+      --orange: #ff8844;
+      --pink: #ff3366;
+      --purple: #aa66ff;
+      --yellow: #ffd700;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --grid-color: rgba(30, 30, 60, 0.5);
+    }
+
+    html { scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--border-glow) var(--bg); }
+
+    body {
+      font-family: var(--font-mono);
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, var(--grid-color) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    a { color: var(--green); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--cyan); }
+
+    .container { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Top Bar ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(7, 7, 13, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+    }
+
+    .topbar-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .back-link { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .back-link:hover { color: var(--green); }
+
+    .topbar-links { display: flex; gap: 12px; }
+    .topbar-links a { font-size: 12px; color: var(--text-dim); padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; }
+    .topbar-links a:hover { color: var(--green); border-color: rgba(0, 255, 136, 0.3); }
+
+    /* ── Hero ── */
+    .hero { padding: 80px 0 48px; text-align: center; }
+    .hero-icon { font-size: 56px; margin-bottom: 16px; }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(32px, 5vw, 48px);
+      color: #fff;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    h1 .accent { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 580px;
+      margin: 0 auto 24px;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 5px; letter-spacing: 0.5px; }
+    .badge-orange { background: rgba(255, 136, 68, 0.15); color: var(--orange); border: 1px solid rgba(255, 136, 68, 0.25); }
+    .badge-blue { background: rgba(0, 136, 255, 0.12); color: #4499ff; border: 1px solid rgba(0, 136, 255, 0.2); }
+
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      text-decoration: none;
+      transition: all 0.25s ease;
+      border: 1px solid var(--border);
+    }
+
+    .btn-primary { background: var(--orange); color: var(--bg); border-color: var(--orange); }
+    .btn-primary:hover { background: #ffaa66; color: var(--bg); box-shadow: 0 0 24px rgba(255, 136, 68, 0.2); }
+    .btn-secondary { background: var(--bg-raised); color: var(--text); }
+    .btn-secondary:hover { border-color: var(--green); color: var(--green); }
+    .btn-appstore { background: var(--bg-card); color: var(--text-dim); border-color: var(--border); cursor: default; font-style: italic; }
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── Sections ── */
+    section { padding: 48px 0 24px; }
+
+    h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 22px;
+      color: #fff;
+      letter-spacing: -0.3px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h2 .emoji { margin-right: 8px; }
+
+    /* ── Story Card ── */
+    .story-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.75;
+    }
+
+    .story-card strong { color: var(--text); font-weight: 500; }
+    .story-card em { color: var(--orange); font-style: normal; }
+    .story-card p { margin-bottom: 12px; }
+    .story-card p:last-child { margin-bottom: 0; }
+
+    .legacy-box {
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    .legacy-box .label {
+      font-weight: 700;
+      color: var(--purple);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    /* ── Feature Grid ── */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .feature {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      transition: border-color 0.2s;
+    }
+
+    .feature:hover { border-color: var(--border-glow); }
+    .feature-title { font-weight: 600; color: #fff; font-size: 13px; margin-bottom: 6px; }
+    .feature-desc { font-size: 12px; color: var(--text-muted); line-height: 1.55; }
+
+    /* ── Use Cases ── */
+    .use-cases {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .use-case {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .use-case-icon { font-size: 28px; margin-bottom: 8px; }
+    .use-case h3 { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: #fff; margin-bottom: 8px; }
+    .use-case p { font-size: 12px; color: var(--text-muted); line-height: 1.55; }
+
+    /* ── Tech Specs ── */
+    .specs {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .spec {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .spec-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .spec-value { font-size: 14px; color: #fff; font-weight: 600; }
+
+    /* ── Footer ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 60px auto 0;
+      padding: 24px 24px 40px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--green); }
+
+    @media (max-width: 600px) {
+      .features, .use-cases, .specs { grid-template-columns: 1fr; }
+      .hero { padding: 60px 0 32px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      .topbar-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a href="/" class="back-link">← ceesaxp.github.io</a>
+      <div class="topbar-links">
+        <a href="#story">Story</a>
+        <a href="#features">Features</a>
+        <a href="#use-cases">Use Cases</a>
+        <a href="#specs">Tech Specs</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="hero">
+      <div class="hero-icon">⏱️</div>
+      <h1>Timer <span class="accent">Utility</span> Next</h1>
+      <p class="hero-sub">
+        A modern macOS timer app — countdown timers, alarms, stopwatches, and project time tracking with action chaining. Rebuilt from the ground up in Swift.
+      </p>
+      <div class="hero-badges">
+        <span class="badge badge-orange">Swift 6</span>
+        <span class="badge badge-blue">macOS 14+</span>
+      </div>
+      <div class="hero-actions">
+        <a href="https://github.com/Ceesaxp/time-utility-new" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+        <!-- TODO: Replace with actual App Store link once approved -->
+        <span class="btn btn-appstore">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          App Store — coming soon
+        </span>
+      </div>
+    </div>
+
+    <!-- ── The Story ── -->
+    <section id="story">
+      <h2><span class="emoji">📖</span> The Story</h2>
+      <div class="story-card">
+        <p>
+          Back in the early days of Mac OS X, there was a little gem called <em>Timer Utility</em> by JR Productions.
+          Version 4.1.4, built for macOS 10.5+ with Xcode 4.0 — it shipped as a Universal Binary supporting
+          <strong>PowerPC, 32-bit Intel, and 64-bit Intel</strong>. A true relic of the PPC-to-Intel transition era.
+        </p>
+        <p>
+          It was a beautifully practical multi-tool: countdown timers, alarm clocks, stopwatches, date countdowns,
+          and — the killer feature — <strong>project time tracking with cost rates and CSV/PDF export</strong>.
+          Coaches used it for training blocks. Freelancers used it to track billable hours. It lived in your menu bar
+          and Dock, quietly doing its job.
+        </p>
+        <div class="legacy-box">
+          <div class="label">🕰️ Legacy DNA</div>
+          Bundle ID: <code>us.jrproductions.timerutility</code> · Architectures: ppc7400, i386, x86_64 ·
+          Growl notifications · Dynamic Dock tile · iTunes playlist actions via AppleScript ·
+          Action chaining (sound → linked timer → notification) · NSKeyedArchiver .tudata persistence
+        </div>
+        <p>
+          Then JR Productions went dark. The app was discontinued, the license server went offline,
+          and macOS marched on — dropping 32-bit support, then Rosetta, then Intel entirely.
+          <em>Timer Utility</em> couldn't follow.
+        </p>
+        <p>
+          <strong>Timer Utility Next</strong> is a ground-up rebuild in modern Swift, designed to carry forward
+          everything that made the original great — and leave behind everything that held it back. No Growl. No
+          license servers. Just a solid, native macOS app that respects your time (pun intended).
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Features ── -->
+    <section id="features">
+      <h2><span class="emoji">✨</span> Features</h2>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-title">⏳ Countdown Timers</div>
+          <div class="feature-desc">Multiple concurrent timers with hours/minutes/seconds. Pause, resume, add time on the fly.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">⏰ Alarm Clocks</div>
+          <div class="feature-desc">Day-of-week alarms with repeat scheduling. Wake up, take a break, end the day — on schedule.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🔄 Stopwatch Logging</div>
+          <div class="feature-desc">Elapsed time tracking with lap/export support. Perfect for ad-hoc timing sessions.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">📅 Date Countdowns</div>
+          <div class="feature-desc">Track days remaining to any target date. Launches, deadlines, birthdays — at a glance.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🔗 Action Chaining</div>
+          <div class="feature-desc">When a timer completes: play a sound, fire a notification, start the next timer. Fully automated blocks.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">📊 Project Time Tracking</div>
+          <div class="feature-desc">Associate timers with projects. Set cost rates per hour/day/session. Track where your time goes.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">📄 CSV &amp; PDF Reports</div>
+          <div class="feature-desc">Export project reports by date range. CSV for spreadsheets, PDF for clients. Done.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">📊 Menu Bar &amp; Dock</div>
+          <div class="feature-desc">Live timer display in your menu bar and dock badge. No need to keep the window open.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🤖 AppleScript Support</div>
+          <div class="feature-desc">Full scripting dictionary for Shortcuts, Keyboard Maestro, Alfred, and osascript automation.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Use Cases ── -->
+    <section id="use-cases">
+      <h2><span class="emoji">🎯</span> Who Is This For?</h2>
+      <div class="use-cases">
+        <div class="use-case">
+          <div class="use-case-icon">🏋️</div>
+          <h3>Coaches &amp; Trainers</h3>
+          <p>Run repeatable session blocks — warmup → drills → cooldown — with automatic transitions. Chain timers so you focus on coaching, not clicking.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">💼</div>
+          <h3>Freelancers &amp; Consultants</h3>
+          <p>Track billable hours by project with cost rates. Generate client-ready reports in CSV or PDF. Know exactly where your time went.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">🧑‍💻</div>
+          <h3>Knowledge Workers</h3>
+          <p>Pomodoro-style focused work blocks, meeting countdown reminders, and break timers. All in the menu bar, out of your way until you need it.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Tech Specs ── -->
+    <section id="specs">
+      <h2><span class="emoji">⚙️</span> Technical Details</h2>
+      <div class="specs">
+        <div class="spec">
+          <div class="spec-label">Language</div>
+          <div class="spec-value">Swift 6</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">UI Framework</div>
+          <div class="spec-value">AppKit-first</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">Platform</div>
+          <div class="spec-value">macOS 14+</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">Persistence</div>
+          <div class="spec-value">SQLite / GRDB</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">Timer Engine</div>
+          <div class="spec-value">Monotonic clock</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">Timer Drift</div>
+          <div class="spec-value">≤ 100ms/min</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">Notifications</div>
+          <div class="spec-value">UserNotifications</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">Scripting</div>
+          <div class="spec-value">SDEF dictionary</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">Startup</div>
+          <div class="spec-value">&lt; 1.5s (Apple Silicon)</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">License</div>
+          <div class="spec-value">One-time purchase</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <span>Timer Utility Next · by <a href="/">Andrei Popov</a></span>
+    <a href="https://github.com/Ceesaxp/time-utility-new">GitHub</a>
+  </footer>
+
+</body>
+</html>
