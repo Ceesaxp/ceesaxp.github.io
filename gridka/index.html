@@ -4,7 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gridka — Blazing-Fast CSV Viewer for macOS</title>
-  <meta name="description" content="A native macOS CSV viewer powered by DuckDB. Opens 100M+ row files with instant scrolling, sorting, filtering, and search.">
+  <meta name="description" content="Gridka is a native macOS CSV viewer powered by DuckDB. Open 100M+ row CSV and TSV files with instant virtual scrolling, column sorting, filtering, global search, and cell editing.">
+  <meta name="keywords" content="CSV viewer, macOS, DuckDB, TSV viewer, data viewer, Swift, spreadsheet, large CSV, CSV editor, Mac App Store">
+  <meta name="author" content="Andrei Popov">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Gridka — Blazing-Fast CSV Viewer for macOS">
+  <meta property="og:description" content="A native macOS CSV viewer powered by DuckDB. Open 100M+ row files with instant scrolling, sorting, filtering, and search.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ceesaxp.github.io/gridka/">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="@gridka_app">
+  <meta name="twitter:title" content="Gridka — Blazing-Fast CSV Viewer for macOS">
+  <meta name="twitter:description" content="A native macOS CSV viewer powered by DuckDB. Open 100M+ row files with instant scrolling, sorting, filtering, and search.">
+
+  <link rel="canonical" href="https://ceesaxp.github.io/gridka/">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
@@ -22,12 +38,8 @@
       --text-muted: #6a6a88;
       --text-dim: #44445a;
       --green: #00ff88;
-      --green-dim: #00cc6a;
-      --pink: #ff3366;
       --cyan: #00ccff;
-      --yellow: #ffd700;
       --orange: #ff8844;
-      --purple: #aa66ff;
       --font-display: 'Syne', sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
       --grid-color: rgba(30, 30, 60, 0.5);
@@ -145,6 +157,8 @@
       margin: 0 auto 24px;
     }
 
+    .hero-sub strong { color: #fff; }
+
     .hero-badges {
       display: flex;
       gap: 8px;
@@ -206,14 +220,6 @@
     .btn-secondary:hover {
       border-color: var(--green);
       color: var(--green);
-    }
-
-    .btn-appstore {
-      background: var(--bg-card);
-      color: var(--text-dim);
-      border-color: var(--border);
-      cursor: default;
-      font-style: italic;
     }
 
     .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
@@ -443,7 +449,7 @@
       <div class="hero-icon">🦆</div>
       <h1>Grid<span class="accent">ka</span></h1>
       <p class="hero-sub">
-        A blazing-fast native macOS CSV viewer powered by DuckDB. Opens files of <strong style="color:#fff">any size</strong> with instant scrolling, sorting, filtering, and search.
+        A blazing-fast native macOS CSV viewer powered by DuckDB. Open CSV and TSV files of <strong>any size</strong> with instant scrolling, sorting, filtering, and search.
       </p>
       <div class="hero-badges">
         <span class="badge badge-orange">Swift 5.10</span>
@@ -455,17 +461,16 @@
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
           View on GitHub
         </a>
-        <!-- TODO: Replace with actual App Store link once approved -->
-        <span class="btn btn-appstore">
+        <a href="https://apps.apple.com/app/gridka/id6759612463" class="btn btn-secondary" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-          <a href="https://apps.apple.com/app/gridka/id6759612463" class="btn" target="_blank" rel="noopener">App Store</a>
-        </span>
+          Mac App Store
+        </a>
         <a href="privacy.html" class="btn btn-secondary">🔒 Privacy Policy</a>
       </div>
     </div>
 
     <!-- ── Why Gridka? ── -->
-    <section>
+    <section id="why">
       <h2><span class="emoji">🤔</span> Why Gridka?</h2>
       <div class="why-card">
         <p>
@@ -545,11 +550,11 @@
           <tr><td><kbd>⌘C</kbd></td><td>Copy cell value</td></tr>
           <tr><td><kbd>⇧⌘C</kbd></td><td>Copy entire row</td></tr>
           <tr><td><kbd>⇧⌘D</kbd></td><td>Toggle detail pane</td></tr>
-          <tr><td>Click header</td><td>Sort ascending / descending / clear</td></tr>
-          <tr><td>Shift+click header</td><td>Multi-column sort</td></tr>
-          <tr><td>Right-click header</td><td>Filter / hide column</td></tr>
-          <tr><td>Double-click divider</td><td>Auto-fit column width</td></tr>
-          <tr><td>Drag &amp; drop</td><td>Open CSV by dragging onto window</td></tr>
+          <tr><td><kbd>Click</kbd> header</td><td>Sort ascending / descending / clear</td></tr>
+          <tr><td><kbd>⇧ Click</kbd> header</td><td>Multi-column sort</td></tr>
+          <tr><td><kbd>Right-click</kbd> header</td><td>Filter / hide column</td></tr>
+          <tr><td><kbd>Double-click</kbd> divider</td><td>Auto-fit column width</td></tr>
+          <tr><td><kbd>Drag &amp; drop</kbd></td><td>Open CSV by dragging onto window</td></tr>
         </tbody>
       </table>
     </section>
@@ -560,8 +565,8 @@
       <div class="install-options">
         <div class="install-option">
           <h3>🍎 Mac App Store</h3>
-          <p class="coming-soon">Coming soon — awaiting approval.</p>
-          <!-- TODO: Add App Store badge/link once approved -->
+          <p>Available now on the Mac App Store.</p>
+          <a href="https://apps.apple.com/app/gridka/id6759612463" class="btn btn-secondary" target="_blank" rel="noopener" style="font-size:12px; padding:7px 14px; margin-top:4px;">Get on App Store →</a>
         </div>
         <div class="install-option">
           <h3>📥 Direct Download</h3>
@@ -580,7 +585,7 @@ xcodebuild -scheme Gridka -configuration Release build</code>
     </section>
 
     <!-- ── Architecture ── -->
-    <section>
+    <section id="architecture">
       <h2><span class="emoji">🏗️</span> Architecture</h2>
       <div class="arch-block">
         <p>
