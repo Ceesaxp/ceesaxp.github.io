@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>With-In — Daily Zen Quotes for iOS</title>
+  <meta name="description" content="With-In is a minimalist daily zen quotes app for iOS. One quote a day, a moment to reflect, and a gentle commentary to carry with you.">
+  <meta name="keywords" content="zen quotes, iOS app, daily quotes, mindfulness, meditation, reflection, zen proverb, Swift, iPhone">
+  <meta name="author" content="Andrei Popov">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="With-In — Daily Zen Quotes for iOS">
+  <meta property="og:description" content="A minimalist daily zen quotes app. One quote, one reflection, one moment of stillness.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ceesaxp.github.io/within/">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="With-In — Daily Zen Quotes for iOS">
+  <meta name="twitter:description" content="A minimalist daily zen quotes app. One quote, one reflection, one moment of stillness.">
+
+  <link rel="canonical" href="https://ceesaxp.github.io/within/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #07070d;
+      --bg-raised: #0e0e18;
+      --bg-card: #111120;
+      --bg-card-hover: #16162a;
+      --border: #1e1e35;
+      --border-glow: #2a2a50;
+      --text: #d8d8e8;
+      --text-muted: #6a6a88;
+      --text-dim: #44445a;
+      --green: #00ff88;
+      --cyan: #00ccff;
+      --orange: #ff8844;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --grid-color: rgba(30, 30, 60, 0.5);
+    }
+
+    html { scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--border-glow) var(--bg); }
+
+    body {
+      font-family: var(--font-mono);
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, var(--grid-color) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    a { color: var(--green); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--cyan); }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* -- Top Bar -- */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(7, 7, 13, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+    }
+
+    .topbar-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .back-link {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .back-link:hover { color: var(--green); }
+
+    .topbar-links {
+      display: flex;
+      gap: 12px;
+    }
+
+    .topbar-links a {
+      font-size: 12px;
+      color: var(--text-dim);
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .topbar-links a:hover {
+      color: var(--green);
+      border-color: rgba(0, 255, 136, 0.3);
+    }
+
+    /* -- Hero -- */
+    .hero {
+      padding: 80px 0 48px;
+      text-align: center;
+    }
+
+    .hero-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(36px, 5vw, 52px);
+      color: #fff;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    h1 .accent { color: var(--green); }
+
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto 24px;
+    }
+
+    .hero-sub strong { color: #fff; }
+
+    .hero-badges {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 5px;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-orange { background: rgba(255, 136, 68, 0.15); color: var(--orange); border: 1px solid rgba(255, 136, 68, 0.25); }
+    .badge-blue { background: rgba(0, 136, 255, 0.12); color: #4499ff; border: 1px solid rgba(0, 136, 255, 0.2); }
+    .badge-green { background: rgba(0, 255, 136, 0.1); color: var(--green); border: 1px solid rgba(0, 255, 136, 0.2); }
+    .badge-purple { background: rgba(170, 102, 255, 0.12); color: #aa66ff; border: 1px solid rgba(170, 102, 255, 0.2); }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      text-decoration: none;
+      transition: all 0.25s ease;
+      border: 1px solid var(--border);
+    }
+
+    .btn-primary {
+      background: var(--green);
+      color: var(--bg);
+      border-color: var(--green);
+    }
+
+    .btn-primary:hover {
+      background: #33ffaa;
+      color: var(--bg);
+      box-shadow: 0 0 24px rgba(0, 255, 136, 0.2);
+    }
+
+    .btn-secondary {
+      background: var(--bg-raised);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* -- Sections -- */
+    section {
+      padding: 48px 0 24px;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 22px;
+      color: #fff;
+      letter-spacing: -0.3px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h2 .emoji { margin-right: 8px; }
+
+    /* -- Screenshots -- */
+    .screenshots {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .screenshots img {
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .screenshots img:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .screenshot-caption {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    /* -- Feature Grid -- */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .feature {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      transition: border-color 0.2s;
+    }
+
+    .feature:hover { border-color: var(--border-glow); }
+
+    .feature-title {
+      font-weight: 600;
+      color: #fff;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* -- Why Section -- */
+    .why-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .why-card strong { color: var(--text); font-weight: 500; }
+    .why-card em { color: var(--orange); font-style: normal; }
+
+    /* -- Footer -- */
+    footer {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 60px auto 0;
+      padding: 24px 24px 40px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--green); }
+
+    /* -- Responsive -- */
+    @media (max-width: 600px) {
+      .features { grid-template-columns: 1fr; }
+      .screenshots { grid-template-columns: 1fr; gap: 24px; }
+      .hero { padding: 60px 0 32px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      .topbar-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a href="/" class="back-link">&larr; ceesaxp.github.io</a>
+      <div class="topbar-links">
+        <a href="#screenshots">Screenshots</a>
+        <a href="#features">Features</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="hero">
+      <div class="hero-icon">&#x1F9D8;</div>
+      <h1>With<span class="accent">-In</span></h1>
+      <p class="hero-sub">
+        A minimalist daily zen quotes app. <strong>One quote</strong> each day, a moment to reflect, and a gentle commentary to carry with you. Stillness in your pocket.
+      </p>
+      <div class="hero-badges">
+        <span class="badge badge-orange">Swift</span>
+        <span class="badge badge-blue">iOS 17+</span>
+        <span class="badge badge-purple">Android (soon)</span>
+      </div>
+      <div class="hero-actions">
+        <a href="https://github.com/Ceesaxp/zen-within" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+    </div>
+
+    <!-- -- Why With-In? -- -->
+    <section id="why">
+      <h2><span class="emoji">&#x1F30A;</span> Why With-In?</h2>
+      <div class="why-card">
+        <p>
+          Most quote apps <em>drown you in notifications</em>, slap ads between every swipe,
+          or serve you recycled motivational poster slogans.
+        </p>
+        <p>
+          With-In takes the opposite approach: <strong>one curated zen quote per day</strong>.
+          Read it. Sit with it. Write a short reflection if the mood strikes.
+          Then a gentle commentary unfolds below, offering context without telling you what to think.
+        </p>
+        <p>
+          No feeds, no streaks, no gamification. Just a quiet moment of stillness in an otherwise noisy day.
+        </p>
+      </div>
+    </section>
+
+    <!-- -- Screenshots -- -->
+    <section id="screenshots">
+      <h2><span class="emoji">&#x1F4F1;</span> Screenshots</h2>
+      <div class="screenshots">
+        <div>
+          <img src="screenshots/quote.png" alt="With-In daily quote screen showing a zen proverb">
+          <p class="screenshot-caption">Daily Quote</p>
+        </div>
+        <div>
+          <img src="screenshots/reflection.png" alt="With-In reflection editor for journaling your thoughts">
+          <p class="screenshot-caption">Reflection</p>
+        </div>
+        <div>
+          <img src="screenshots/commentary.png" alt="With-In commentary expanding on the quote's meaning">
+          <p class="screenshot-caption">Commentary</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- -- Features -- -->
+    <section id="features">
+      <h2><span class="emoji">&#x2728;</span> Features</h2>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-title">&#x1F4DC; Daily Zen Quote</div>
+          <div class="feature-desc">A carefully curated zen proverb or teaching delivered fresh each day. 50 quotes in the current collection, with more on the way.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">&#x1F58A;&#xFE0F; Personal Reflections</div>
+          <div class="feature-desc">Jot down your thoughts on the day's quote. A lightweight journaling space that stays private and on-device.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">&#x1F4D6; Gentle Commentary</div>
+          <div class="feature-desc">Swipe to reveal a brief essay that expands on the quote's meaning. Context, not prescription.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">&#x1F3A8; Minimalist Design</div>
+          <div class="feature-desc">Clean, warm typography on a soft cream background. No clutter, no distractions. Just words and space.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">&#x1F6AB; No Ads, No Tracking</div>
+          <div class="feature-desc">No analytics, no third-party SDKs, no data collection. Your reflections never leave your device.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">&#x1F4F1; iOS + Android (soon)</div>
+          <div class="feature-desc">Native iOS app available now. Android version is on the way.</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <span>With-In &middot; by <a href="/">Andrei Popov</a></span>
+    <span>
+      <a href="https://github.com/Ceesaxp/zen-within">GitHub</a>
+    </span>
+  </footer>
+
+</body>
+</html>
