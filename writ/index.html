@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Writ — Native macOS Markdown Editor for Technical Writing</title>
+  <meta name="description" content="Writ is a fast, native macOS Markdown editor. Plain text in, publication-quality technical preview out. GitHub-Flavored Markdown, KaTeX math, Mermaid diagrams, code highlighting. No Electron, no cloud, no nonsense.">
+  <meta name="keywords" content="Markdown editor, macOS, native, Swift, AppKit, WKWebView, GFM, KaTeX, Mermaid, technical writing, WYWIWYM, documentation">
+  <meta name="author" content="Andrei Popov">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Writ — Native macOS Markdown Editor">
+  <meta property="og:description" content="Plain text in, publication-quality technical preview out. GFM, KaTeX, Mermaid — all bundled, all local, all fast.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ceesaxp.github.io/writ/">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Writ — Native macOS Markdown Editor">
+  <meta name="twitter:description" content="Plain text in, publication-quality technical preview out. GFM, KaTeX, Mermaid — all bundled, all local, all fast.">
+
+  <link rel="canonical" href="https://ceesaxp.github.io/writ/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #07070d;
+      --bg-raised: #0e0e18;
+      --bg-card: #111120;
+      --bg-card-hover: #16162a;
+      --border: #1e1e35;
+      --border-glow: #2a2a50;
+      --text: #d8d8e8;
+      --text-muted: #6a6a88;
+      --text-dim: #44445a;
+      --green: #00ff88;
+      --cyan: #00ccff;
+      --orange: #ff8844;
+      --purple: #aa66ff;
+      --yellow: #ffd700;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --grid-color: rgba(30, 30, 60, 0.5);
+    }
+
+    html { scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--border-glow) var(--bg); }
+
+    body {
+      font-family: var(--font-mono);
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, var(--grid-color) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    a { color: var(--green); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--cyan); }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Top Bar ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(7, 7, 13, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+    }
+
+    .topbar-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .back-link {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .back-link:hover { color: var(--green); }
+
+    .topbar-links {
+      display: flex;
+      gap: 12px;
+    }
+
+    .topbar-links a {
+      font-size: 12px;
+      color: var(--text-dim);
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .topbar-links a:hover {
+      color: var(--green);
+      border-color: rgba(0, 255, 136, 0.3);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 80px 0 48px;
+      text-align: center;
+    }
+
+    .hero-icon {
+      width: 96px;
+      height: 96px;
+      margin: 0 auto 20px;
+      display: block;
+      filter: drop-shadow(0 0 24px rgba(0, 255, 136, 0.18));
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(36px, 5vw, 52px);
+      color: #fff;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    h1 .accent { color: var(--green); }
+
+    .hero-tagline {
+      font-family: var(--font-mono);
+      font-style: italic;
+      font-size: 13px;
+      color: var(--cyan);
+      letter-spacing: 0.5px;
+      margin-bottom: 18px;
+    }
+
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 24px;
+    }
+
+    .hero-sub strong { color: #fff; }
+    .hero-sub em { color: var(--orange); font-style: normal; }
+
+    .hero-badges {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 5px;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-orange { background: rgba(255, 136, 68, 0.15); color: var(--orange); border: 1px solid rgba(255, 136, 68, 0.25); }
+    .badge-blue { background: rgba(0, 136, 255, 0.12); color: #4499ff; border: 1px solid rgba(0, 136, 255, 0.2); }
+    .badge-green { background: rgba(0, 255, 136, 0.1); color: var(--green); border: 1px solid rgba(0, 255, 136, 0.2); }
+    .badge-purple { background: rgba(170, 102, 255, 0.12); color: var(--purple); border: 1px solid rgba(170, 102, 255, 0.2); }
+    .badge-yellow { background: rgba(255, 215, 0, 0.12); color: var(--yellow); border: 1px solid rgba(255, 215, 0, 0.25); }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      text-decoration: none;
+      transition: all 0.25s ease;
+      border: 1px solid var(--border);
+    }
+
+    .btn-primary {
+      background: var(--green);
+      color: var(--bg);
+      border-color: var(--green);
+    }
+
+    .btn-primary:hover {
+      background: #33ffaa;
+      color: var(--bg);
+      box-shadow: 0 0 24px rgba(0, 255, 136, 0.2);
+    }
+
+    .btn-secondary {
+      background: var(--bg-raised);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── Sections ── */
+    section {
+      padding: 48px 0 24px;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 22px;
+      color: #fff;
+      letter-spacing: -0.3px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h2 .emoji { margin-right: 8px; }
+
+    /* ── Feature Grid ── */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .feature {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .feature:hover {
+      border-color: var(--border-glow);
+      transform: translateY(-2px);
+    }
+
+    .feature-title {
+      font-weight: 600;
+      color: #fff;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    .feature-desc code {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 11px;
+      color: var(--cyan);
+    }
+
+    /* ── Why Section ── */
+    .why-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .why-card p + p { margin-top: 12px; }
+    .why-card strong { color: var(--text); font-weight: 500; }
+    .why-card em { color: var(--orange); font-style: normal; }
+    .why-card code {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 12px;
+      color: var(--cyan);
+    }
+
+    /* ── Status Lists ── */
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .status-col {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .status-col h3 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: -0.2px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-col.done h3 { color: var(--green); }
+    .status-col.wip h3 { color: var(--orange); }
+
+    .status-col ul {
+      list-style: none;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .status-col li {
+      padding-left: 18px;
+      position: relative;
+    }
+
+    .status-col.done li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    .status-col.wip li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--orange);
+    }
+
+    /* ── Architecture / Pipeline ── */
+    .arch-block {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px;
+    }
+
+    .arch-block p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.65;
+      margin-bottom: 12px;
+    }
+
+    .arch-block p:last-child { margin-bottom: 0; }
+    .arch-block strong { color: var(--text); font-weight: 500; }
+    .arch-block code {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 12px;
+      color: var(--cyan);
+    }
+
+    .pipeline {
+      list-style: none;
+      counter-reset: step;
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .pipeline li {
+      counter-increment: step;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 8px 12px 8px 36px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      position: relative;
+    }
+
+    .pipeline li::before {
+      content: counter(step);
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      background: rgba(0, 204, 255, 0.12);
+      color: var(--cyan);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid rgba(0, 204, 255, 0.2);
+    }
+
+    /* ── Targets Grid ── */
+    .targets {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+
+    .target {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .target strong {
+      display: block;
+      font-family: var(--font-display);
+      color: var(--green);
+      font-size: 18px;
+      letter-spacing: -0.5px;
+      margin-bottom: 2px;
+    }
+
+    /* ── Install ── */
+    .install-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .install-option {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .install-option h3 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 15px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .install-option p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+
+    .install-option code {
+      display: block;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--green);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* ── Privacy callout ── */
+    .privacy-card {
+      background: linear-gradient(135deg, rgba(0, 255, 136, 0.04), rgba(0, 204, 255, 0.04));
+      border: 1px solid rgba(0, 255, 136, 0.18);
+      border-radius: 12px;
+      padding: 22px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .privacy-card strong { color: var(--green); font-weight: 600; }
+
+    /* ── Footer ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 60px auto 0;
+      padding: 24px 24px 40px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--green); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .features, .install-options, .targets { grid-template-columns: 1fr; }
+      .status-grid { grid-template-columns: 1fr; }
+      .hero { padding: 60px 0 32px; }
+      .hero-icon { width: 80px; height: 80px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      .topbar-links { display: none; }
+    }
+
+    /* ── Icon caret blink ── */
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+    .icon-caret { animation: blink 1.1s steps(1) infinite; }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a href="/" class="back-link">← ceesaxp.github.io</a>
+      <div class="topbar-links">
+        <a href="#why">Why</a>
+        <a href="#features">Features</a>
+        <a href="#status">Status</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#install">Install</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="hero">
+      <!-- Custom Writ icon: parchment + markdown heading + blinking cursor + nib stroke -->
+      <svg class="hero-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Writ icon" role="img">
+        <defs>
+          <linearGradient id="nibGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00ff88"/>
+            <stop offset="100%" stop-color="#00ccff"/>
+          </linearGradient>
+          <linearGradient id="paperGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="rgba(0,255,136,0.06)"/>
+            <stop offset="100%" stop-color="rgba(0,204,255,0.02)"/>
+          </linearGradient>
+        </defs>
+        <!-- Paper / document with folded corner -->
+        <path d="M18 12 L62 12 L82 32 L82 88 L18 88 Z"
+              fill="url(#paperGrad)" stroke="#00ff88" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M62 12 L62 32 L82 32"
+              fill="none" stroke="#00ff88" stroke-width="2.5" stroke-linejoin="round"/>
+
+        <!-- Markdown heading marker (#) -->
+        <text x="27" y="50" font-family="'JetBrains Mono', ui-monospace, monospace"
+              font-size="20" font-weight="800" fill="#00ccff" letter-spacing="-1">#</text>
+        <!-- Heading underline -->
+        <line x1="43" y1="46" x2="73" y2="46" stroke="#00ccff" stroke-width="3"
+              stroke-linecap="round" opacity="0.35"/>
+
+        <!-- Body lines -->
+        <line x1="27" y1="62" x2="74" y2="62" stroke="#6a6a88" stroke-width="2" stroke-linecap="round"/>
+        <line x1="27" y1="70" x2="66" y2="70" stroke="#6a6a88" stroke-width="2" stroke-linecap="round"/>
+        <line x1="27" y1="78" x2="58" y2="78" stroke="#44445a" stroke-width="2" stroke-linecap="round"/>
+
+        <!-- Blinking cursor -->
+        <rect class="icon-caret" x="60" y="73" width="2.5" height="9" fill="#ff8844"/>
+
+        <!-- Pen nib mark (subtle, in the folded corner) -->
+        <path d="M70 20 L78 28 L74 32 L66 24 Z"
+              fill="url(#nibGrad)" stroke="none" opacity="0.85"/>
+        <line x1="70" y1="20" x2="74" y2="32" stroke="#07070d" stroke-width="1"/>
+      </svg>
+
+      <h1>Wr<span class="accent">it</span></h1>
+      <p class="hero-tagline">// What You Write Is What You Mean</p>
+      <p class="hero-sub">
+        A fast, native macOS Markdown editor for technical writing.
+        <strong>Plain text in, publication-quality technical preview out.</strong>
+        GitHub-Flavored Markdown, code, math, Mermaid diagrams, and export-ready typography &mdash;
+        all bundled, all local, all yours.
+      </p>
+      <div class="hero-badges">
+        <span class="badge badge-orange">Swift 6</span>
+        <span class="badge badge-blue">macOS 14+</span>
+        <span class="badge badge-purple">AppKit · TextKit</span>
+        <span class="badge badge-green">Local-First</span>
+        <span class="badge badge-yellow">MVP</span>
+      </div>
+      <div class="hero-actions">
+        <a href="https://github.com/Ceesaxp/Writ.app" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+        <a href="https://github.com/Ceesaxp/Writ.app/blob/main/docs/00-PRD-Final.md" class="btn btn-secondary" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+          Read the PRD
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Why Writ? ── -->
+    <section id="why">
+      <h2><span class="emoji">🤔</span> Why Writ?</h2>
+      <div class="why-card">
+        <p>
+          Most Markdown editors are either <em>Electron blobs that idle at 400 MB of RAM</em>,
+          rich-text WYSIWYGs that secretly mangle your <code>.md</code> on save,
+          or cloud-locked notebooks that hold your prose hostage behind a subscription.
+        </p>
+        <p>
+          Writ takes the opposite stance: <strong>plain text is the canonical format</strong>,
+          your files live where you put them, and the preview renders structure and meaning &mdash;
+          not a fake page of decorative font choices.
+        </p>
+        <p>
+          The principle is <strong>WYWIWYM</strong> &mdash; <em>What You Write Is What You Mean</em>.
+          You write Markdown. Writ shows you what it means &mdash; including math, diagrams, and
+          code &mdash; without ever pretending to be the document itself.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Features ── -->
+    <section id="features">
+      <h2><span class="emoji">✨</span> Features</h2>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-title">📝 Native Editor</div>
+          <div class="feature-desc">AppKit / TextKit <code>NSTextView</code>, not SwiftUI <code>TextEditor</code>. Real undo, find/replace, tabs, autosave, spellcheck — all the macOS behaviors you'd expect.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🔀 Three Modes</div>
+          <div class="feature-desc">Source-only, preview-only, or split. Persistent <code>WKWebView</code> preview with debounced, off-main-thread updates so typing never blocks.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">📘 GitHub-Flavored Markdown</div>
+          <div class="feature-desc">Powered by <code>apple/swift-markdown</code> backed by <code>cmark-gfm</code>. Tables, task lists, strikethrough, the lot.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">∑ KaTeX Math</div>
+          <div class="feature-desc">Inline <code>$…$</code> and display <code>$$…$$</code> math rendered with KaTeX. MathJax bundled as a runtime alternate.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🌊 Mermaid Diagrams</div>
+          <div class="feature-desc">Fenced <code>```mermaid</code> blocks render to native SVG diagrams &mdash; flowcharts, sequence, class, state, and more.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🌱 PlantUML Aware</div>
+          <div class="feature-desc">PlantUML fenced blocks are recognized in the MVP, with a graceful "local rendering deferred" notice in place of a spinner.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">💡 Syntax-Highlighted Code</div>
+          <div class="feature-desc">highlight.js in preview, dark/light aware. Code stays code &mdash; no smart quotes, no autocorrect ambushes.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">📤 Export</div>
+          <div class="feature-desc">HTML and PDF export paths today, with live-rendered math &amp; Mermaid in export landing soon. The output is what you saw.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">⚡ Performance Budget</div>
+          <div class="feature-desc">Open a 1 MB Markdown file editable in &lt;1 s on Apple Silicon. 5 MB stays editable. No full attributed-string rebuild on every keystroke.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🌗 Dark / Light Preview</div>
+          <div class="feature-desc">Preview CSS is system-aware. Switch your Mac to dark mode and the preview follows &mdash; no theme picker required.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🔌 Offline by Default</div>
+          <div class="feature-desc">KaTeX, MathJax, Mermaid, and highlight.js are bundled. No CDN, no remote rendering, no network needed.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">🚫 No Cloud, No Lock-In</div>
+          <div class="feature-desc">No accounts, no sync service, no proprietary format. Your <code>.md</code> file is your <code>.md</code> file.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Status ── -->
+    <section id="status">
+      <h2><span class="emoji">🚧</span> MVP Status</h2>
+      <div class="status-grid">
+        <div class="status-col done">
+          <h3>✓ Shipped</h3>
+          <ul>
+            <li>Document-based app for <code>.md</code>, <code>.markdown</code>, <code>.txt</code></li>
+            <li>AppKit / TextKit editor surface</li>
+            <li>Native undo, find/replace, tabs, autosave</li>
+            <li>Source · Preview · Split modes</li>
+            <li>GFM rendering + code highlighting</li>
+            <li>KaTeX math, Mermaid diagrams</li>
+            <li>PlantUML block recognition</li>
+            <li>Status bar (words, line:col, render state)</li>
+            <li>HTML &amp; PDF export</li>
+            <li>Swift package test suites</li>
+          </ul>
+        </div>
+        <div class="status-col wip">
+          <h3>→ In Progress</h3>
+          <ul>
+            <li>Sandboxed local image / SVG preview</li>
+            <li>Preview HTML sanitization</li>
+            <li>Export with live-rendered math &amp; Mermaid</li>
+            <li>Stronger scroll sync</li>
+            <li>Incremental editor highlighting for large files</li>
+            <li>Optional line numbers</li>
+            <li>Folder / project mode</li>
+            <li>Optional local PlantUML rendering</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Architecture ── -->
+    <section id="architecture">
+      <h2><span class="emoji">🏗️</span> Architecture</h2>
+      <div class="arch-block">
+        <p>
+          A native macOS app on top of a small set of local Swift packages.
+          <strong>No IPC, no Electron, no remote services.</strong>
+        </p>
+        <p>
+          <code>App/</code> hosts the AppKit document app, editor, preview, menu, export, and window controllers.
+          <code>WritCore</code> handles document snapshots, revisions, hashes, render jobs, large-document mode, and technical-block models.
+          <code>WritParser</code> does Markdown parsing, math preprocessing, technical-block extraction, and HTML emission.
+          <code>WritRender</code> manages preview scheduling, technical-block caching, export helpers, and the bridge payloads.
+        </p>
+        <p>
+          The editor is <code>NSTextView</code> with TextKit 2 where practical.
+          The preview is a <strong>persistent <code>WKWebView</code></strong> loaded once per document, then updated through a small JavaScript bridge &mdash;
+          <code>window.Writ.update(...)</code>. Parsing and preview scheduling run off the main thread so typing stays responsive.
+        </p>
+
+        <p style="margin-top:18px;"><strong>Render pipeline:</strong></p>
+        <ol class="pipeline">
+          <li>User edits Markdown in the native text editor</li>
+          <li>Debounce schedules a preview generation</li>
+          <li>Markdown parsing runs off the main thread</li>
+          <li>Technical blocks extracted (math, Mermaid, PlantUML, SVG/image, code)</li>
+          <li>HTML emitted with stable block IDs for preview coordination</li>
+          <li>The existing <code>WKWebView</code> receives an update payload via the bridge</li>
+          <li>Bundled JS renders math, diagrams, and syntax highlighting</li>
+          <li>Expensive renders cached by content hash; errors shown inline, never modal</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ── Performance Targets ── -->
+    <section id="performance">
+      <h2><span class="emoji">⏱️</span> Performance Targets</h2>
+      <div class="targets">
+        <div class="target"><strong>&lt; 1 s</strong> Warm launch to editable window (Apple Silicon)</div>
+        <div class="target"><strong>&lt; 1 s</strong> 1 MB Markdown file to editable state</div>
+        <div class="target"><strong>5 MB</strong> Editable without blocking the main thread</div>
+        <div class="target"><strong>&lt; 500 ms</strong> Preview update for a 10 KB document after debounce</div>
+        <div class="target"><strong>60 fps</strong> Native scroll for large files</div>
+        <div class="target"><strong>0</strong> Full attributed-string rebuilds per keystroke</div>
+      </div>
+    </section>
+
+    <!-- ── Privacy ── -->
+    <section id="privacy">
+      <h2><span class="emoji">🔒</span> Privacy &amp; Offline</h2>
+      <div class="privacy-card">
+        <p>
+          Writ is <strong>local-first</strong>: no account, no telemetry in the MVP, no remote rendering services by default.
+          PlantUML remote servers are explicitly out of scope. KaTeX, MathJax, Mermaid, and highlight.js are bundled in the
+          app for offline use &mdash; your prose, code, and diagrams never leave the machine.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Install ── -->
+    <section id="install">
+      <h2><span class="emoji">📦</span> Build &amp; Run</h2>
+      <div class="install-options">
+        <div class="install-option">
+          <h3>📥 Clone the Repo</h3>
+          <p>Requires macOS 14+, Xcode with Swift 6, and (if regenerating the project) XcodeGen.</p>
+          <code>git clone https://github.com/Ceesaxp/Writ.app.git
+cd Writ.app
+open Writ.xcodeproj</code>
+        </div>
+        <div class="install-option">
+          <h3>🔨 Command Line Build</h3>
+          <p>Build a Debug configuration straight from the CLI.</p>
+          <code>xcodebuild \
+  -project Writ.xcodeproj \
+  -scheme Writ \
+  -configuration Debug build</code>
+        </div>
+        <div class="install-option">
+          <h3>🧪 Run Tests</h3>
+          <p>Each package has its own test suite.</p>
+          <code>swift test --package-path Packages/WritCore
+swift test --package-path Packages/WritParser
+swift test --package-path Packages/WritRender</code>
+        </div>
+        <div class="install-option">
+          <h3>📊 Benchmarks</h3>
+          <p>Parser and fixture benchmark tooling lives in <code>Benchmarks/</code>.</p>
+          <code>swift run --package-path Benchmarks writ-fixtures
+swift run --package-path Benchmarks writ-bench</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Out of Scope ── -->
+    <section id="not-this">
+      <h2><span class="emoji">🚷</span> Deliberately Not This</h2>
+      <div class="why-card">
+        <p>Writ's MVP non-goals, stated up front so nobody has to ask:</p>
+        <p style="margin-top:6px;">
+          <em>WYSIWYG / Typora-style inline rich editing.</em> &nbsp;
+          <em>Cloud sync, collaboration, accounts, proprietary storage.</em> &nbsp;
+          <em>Plugin system.</em> &nbsp;
+          <em>AI writing or generation features.</em> &nbsp;
+          <em>Mobile, iPadOS, Windows, or Linux.</em> &nbsp;
+          <em>A full publishing platform.</em> &nbsp;
+          <em>A heavy custom theme engine.</em>
+        </p>
+        <p>
+          If a feature is missing, that's the answer. If it's in <a href="https://github.com/Ceesaxp/Writ.app/blob/main/TODO.md" target="_blank" rel="noopener">TODO.md</a>,
+          it's on the way.
+        </p>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <span>Writ · by <a href="/">Andrei Popov</a></span>
+    <span>
+      <a href="https://github.com/Ceesaxp/Writ.app">GitHub</a> ·
+      <a href="https://github.com/Ceesaxp/Writ.app/blob/main/docs/00-PRD-Final.md">PRD</a> ·
+      <a href="https://github.com/Ceesaxp/Writ.app/blob/main/TODO.md">Roadmap</a>
+    </span>
+  </footer>
+
+</body>
+</html>
