@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tele-tui — A Telegram Client That Lives in Your Terminal</title>
+  <meta name="description" content="A keyboard-first Telegram client for the terminal, written in Go. Plus an MCP server and a REST API over the same account.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #07070d;
+      --bg-raised: #0e0e18;
+      --bg-card: #111120;
+      --border: #1e1e35;
+      --border-glow: #2a2a50;
+      --text: #d8d8e8;
+      --text-muted: #6a6a88;
+      --text-dim: #44445a;
+      --green: #00ff88;
+      --cyan: #00ccff;
+      --yellow: #ffd700;
+      --orange: #ff8844;
+      --pink: #ff3366;
+      --purple: #aa66ff;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --grid-color: rgba(30, 30, 60, 0.5);
+    }
+
+    html { scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--border-glow) var(--bg); }
+
+    body {
+      font-family: var(--font-mono); font-weight: 400; font-size: 14px; line-height: 1.65;
+      color: var(--text); background: var(--bg);
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle, var(--grid-color) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none; z-index: 0;
+    }
+
+    a { color: var(--green); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--cyan); }
+    code { font-family: var(--font-mono); font-size: 13px; }
+
+    .container { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Top Bar ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(7, 7, 13, 0.88);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border); padding: 14px 24px;
+    }
+
+    .topbar-inner { max-width: 860px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+    .back-link { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .back-link:hover { color: var(--green); }
+    .topbar-links { display: flex; gap: 12px; }
+    .topbar-links a { font-size: 12px; color: var(--text-dim); padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; }
+    .topbar-links a:hover { color: var(--green); border-color: rgba(0, 255, 136, 0.3); }
+
+    /* ── Hero ── */
+    .hero { padding: 80px 0 40px; text-align: center; }
+    .hero-icon { font-size: 56px; margin-bottom: 16px; }
+
+    h1 {
+      font-family: var(--font-display); font-weight: 800;
+      font-size: clamp(36px, 5vw, 52px);
+      color: #fff; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 8px;
+    }
+
+    h1 .accent { color: var(--cyan); }
+
+    .hero-sub { font-size: 15px; color: var(--text-muted); max-width: 560px; margin: 0 auto 24px; }
+
+    .hero-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+    .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 5px; letter-spacing: 0.5px; }
+    .badge-cyan { background: rgba(0, 204, 255, 0.12); color: var(--cyan); border: 1px solid rgba(0, 204, 255, 0.2); }
+    .badge-green { background: rgba(0, 255, 136, 0.1); color: var(--green); border: 1px solid rgba(0, 255, 136, 0.2); }
+    .badge-purple { background: rgba(170, 102, 255, 0.12); color: var(--purple); border: 1px solid rgba(170, 102, 255, 0.22); }
+
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      font-family: var(--font-mono); text-decoration: none;
+      transition: all 0.25s ease; border: 1px solid var(--border);
+    }
+
+    .btn-primary { background: var(--cyan); color: var(--bg); border-color: var(--cyan); }
+    .btn-primary:hover { background: #44ddff; color: var(--bg); box-shadow: 0 0 24px rgba(0, 204, 255, 0.2); }
+    .btn-ghost { color: var(--text-muted); }
+    .btn-ghost:hover { color: var(--green); border-color: rgba(0, 255, 136, 0.3); }
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── Sections ── */
+    section { padding: 44px 0 20px; }
+
+    h2 {
+      font-family: var(--font-display); font-weight: 700; font-size: 22px;
+      color: #fff; letter-spacing: -0.3px; margin-bottom: 20px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    }
+
+    h2 .emoji { margin-right: 8px; }
+
+    /* ── Terminal chrome (shared with the other CLI pages) ── */
+    .terminal {
+      background: #0c0c14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .terminal-bar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 14px;
+      background: var(--bg-raised);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .terminal-dot.red { background: #ff5f56; }
+    .terminal-dot.yellow { background: #ffbd2e; }
+    .terminal-dot.green { background: #27c93f; }
+    .terminal-title { flex: 1; text-align: center; font-size: 11px; color: var(--text-dim); }
+
+    .terminal-body { padding: 16px 20px; font-size: 13px; line-height: 1.8; overflow-x: auto; }
+    .terminal-body .prompt { color: var(--cyan); }
+    .terminal-body .cmd { color: var(--green); }
+    .terminal-body .arg { color: var(--orange); }
+    .terminal-body .output { color: var(--text-muted); }
+    .terminal-body .comment { color: var(--text-dim); font-style: italic; }
+
+    /* ── The frame render ──
+       Not a screenshot: this is the renderer's own output, the same 120×40
+       golden fixture the test suite asserts against, cell for cell, with its
+       real colours. So it stays sharp at any zoom and you can select the text.
+
+       letter-spacing 0 is load-bearing: any tracking at all and the row stops
+       being 120 equal cells, which is the one thing this drawing is.
+
+       The line height is 1.15 rather than a terminal's 1.0. At 1.0 the rows
+       are authentically dense and the descenders are cramped, which reads
+       worse on a page than in a terminal you are sitting in front of. The
+       column rules stay continuous anyway, because each span paints its own
+       background across the full line box — the panel fills do the work the
+       box-drawing glyphs would otherwise have to. */
+    .frame {
+      background: #0b0d10;
+      padding: 14px 16px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .frame pre {
+      font-family: var(--font-mono);
+      font-variant-ligatures: none;
+      font-feature-settings: "liga" 0, "calt" 0;
+      font-size: 11px;
+      line-height: 1.15;
+      letter-spacing: 0;
+      white-space: pre;
+      display: inline-block;
+      min-width: min-content;
+      tab-size: 8;
+    }
+
+    /* Colour emoji get their own advance width from the system font, which
+       would shear the row they sit on. The renderer measured them as two
+       cells; this holds them to it. */
+    .frame .w2 { display: inline-block; width: 2ch; text-align: center; }
+
+    .frame-note {
+      margin-top: 10px; font-size: 11.5px; color: var(--text-dim); line-height: 1.6;
+    }
+
+    .frame-note strong { color: var(--text-muted); font-weight: 500; }
+
+    /* ── Cards ── */
+    .info-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+      font-size: 14px; color: var(--text-muted); line-height: 1.7;
+    }
+
+    .info-card strong { color: var(--text); font-weight: 500; }
+    .info-card p { margin-bottom: 12px; }
+    .info-card p:last-child { margin-bottom: 0; }
+
+    .env-block {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 16px; margin-top: 12px;
+      font-size: 12px; color: var(--green); overflow-x: auto;
+      white-space: pre; line-height: 1.6;
+    }
+
+    .env-block .comment { color: var(--text-dim); }
+
+    /* ── Feature grid ── */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+
+    .tile {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px;
+    }
+
+    .tile h3 {
+      font-family: var(--font-display); font-size: 15px; font-weight: 700;
+      color: #fff; margin-bottom: 6px; letter-spacing: -0.2px;
+    }
+
+    .tile p { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+    .tile code { color: var(--cyan); font-size: 12px; }
+
+    /* ── Key table ── */
+    .keys-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    .keys-table th {
+      text-align: left; color: var(--text-dim); font-weight: 600;
+      text-transform: uppercase; font-size: 11px; letter-spacing: 1px;
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+    }
+
+    .keys-table td { padding: 8px 12px; border-bottom: 1px solid rgba(30, 30, 53, 0.5); vertical-align: top; }
+    .keys-table tr:hover td { background: var(--bg-card); }
+    .keys-table code { color: var(--cyan); font-size: 12px; white-space: nowrap; }
+    .keys-table td:first-child { width: 130px; }
+
+    /* ── Footer ── */
+    footer {
+      position: relative; z-index: 1; max-width: 860px; margin: 60px auto 0;
+      padding: 24px 24px 40px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-dim);
+    }
+
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--green); }
+
+    @media (max-width: 600px) {
+      .hero { padding: 60px 0 32px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      .topbar-links { display: none; }
+      .frame pre { font-size: 9px; }
+      .keys-table td:first-child { width: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a href="/" class="back-link">← ceesaxp.github.io</a>
+      <div class="topbar-links">
+        <a href="#frame">The Frame</a>
+        <a href="#keys">Keys</a>
+        <a href="#agents">MCP &amp; REST</a>
+        <a href="#install">Install</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="hero">
+      <div class="hero-icon">✈️</div>
+      <h1><span class="accent">tele-tui</span></h1>
+      <p class="hero-sub">
+        A Telegram client that lives in your terminal. Keyboard-first, vi-shaped, borderless —
+        and the same account exposed to your agents over MCP and REST.
+      </p>
+      <div class="hero-badges">
+        <span class="badge badge-cyan">Go</span>
+        <span class="badge badge-green">TUI</span>
+        <span class="badge badge-purple">MCP</span>
+        <span class="badge badge-green">REST</span>
+      </div>
+      <div class="hero-actions">
+        <a href="https://github.com/Ceesaxp/telegram-cli" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+        <a href="#frame" class="btn btn-ghost">See the frame ↓</a>
+      </div>
+    </div>
+
+    <!-- ── The frame ── -->
+    <section id="frame">
+      <h2><span class="emoji">🖥️</span> The Frame</h2>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="terminal-dot red"></div>
+          <div class="terminal-dot yellow"></div>
+          <div class="terminal-dot green"></div>
+          <span class="terminal-title">tele-tui — 120×40</span>
+        </div>
+        <div class="frame"><pre>
+<span style="background:#12151a"> </span><span style="color:#6fb8c9;background:#12151a;font-weight:700">tg</span><span style="background:#12151a"> </span><span style="color:#3f4750;background:#12151a">│</span><span style="background:#12151a"> </span><span style="color:#e2e7ec;background:#171d24">1:all</span><span style="background:#12151a"> </span><span style="color:#5c666e;background:#12151a">2:unread</span><span style="background:#12151a"> </span><span style="color:#5c666e;background:#12151a">3:work</span><span style="background:#12151a"> </span><span style="color:#5c666e;background:#12151a">4:channels</span><span style="background:#12151a"> </span><span style="color:#5c666e;background:#12151a">5:archive</span><span style="background:#12151a">                                         </span><span style="color:#86b579;background:#12151a">●</span><span style="color:#465059;background:#12151a"> connected · 1 device</span><span style="color:#3f4750;background:#12151a"> │ </span><span style="color:#465059;background:#12151a">21:04 </span>
+<span style="background:#0e1116"> </span><span style="color:#d1a869;background:#0e1116">/</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">filter chats…                  </span><span style="color:#3f4750;background:#0e1116">9/9</span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#b58ac9;background:#0e1116">#</span><span style="background:#0e1116"> </span><span style="color:#e2e7ec;background:#0e1116;font-weight:700">infra-oncall</span><span style="color:#3f4750;background:#0e1116"> │ </span><span style="color:#5c666e;background:#0e1116">group · …</span><span style="color:#465059;background:#0e1116"> buf 1 │ ln 44/44  bot </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">PINNED</span><span style="background:#0e1116">                       </span>
+<span style="color:#6fb8c9;background:#171d24">▌</span><span style="color:#b58ac9;background:#171d24">#</span><span style="background:#171d24"> </span><span style="color:#e2e7ec;background:#171d24">infra-oncall                 </span><span style="color:#465059;background:#171d24">2m   </span><span style="background:#171d24"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">09:16</span><span style="background:#0b0d10">  </span><span style="color:#6fb8c9;background:#0b0d10">   nadia</span><span style="background:#0b0d10">  </span><span style="color:#5c666e;background:#0b0d10">↳ you Taking 4412. Backoff c…</span><span style="background:#0b0d10"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#d1a869;background:#0e1116">▪</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">Deploy window 14:00–1…</span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">ivo</span><span style="background:#0e1116"> </span>
+<span style="color:#6fb8c9;background:#171d24">▌</span><span style="background:#171d24">  </span><span style="color:#465059;background:#171d24">nadia: rebased, CI green      </span><span style="background:#171d24"> </span><span style="color:#0b0d10;background:#6fb8c9">[4]</span><span style="background:#171d24"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            Yes, jittered. Full ±20%.     </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#d1a869;background:#0e1116">▪</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">Runbook: auth p95 s…</span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">nadia</span><span style="background:#0e1116"> </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="color:#8aa8d0;background:#0e1116">@</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">Nadia Feld                   </span><span style="color:#465059;background:#0e1116">6m   </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10"> </span><span style="color:#5c666e;background:#0b0d10">TODAY</span><span style="background:#0b0d10"> </span><span style="color:#1a1f26;background:#0b0d10">──────────────────────────────────────────</span><span style="background:#0b0d10"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="background:#0e1116">  </span><span style="color:#465059;background:#0e1116">you: pushing the tag now          </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">20:41</span><span style="background:#0b0d10">  </span><span style="color:#8aa8d0;background:#0b0d10">     ivo</span><span style="background:#0b0d10">  Rollout paused — session hits </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">MEMBERS · 24</span><span style="background:#0e1116">                 </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="color:#b58ac9;background:#0e1116">#</span><span style="background:#0e1116"> </span><span style="color:#c9ced3;background:#0e1116">relay-protocol               </span><span style="color:#465059;background:#0e1116">14m  </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            spiked on the auth path.      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#86b579;background:#0e1116">●</span><span style="background:#0e1116"> </span><span style="color:#8aa8d0;background:#0e1116">ivo                 </span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">admin</span><span style="background:#0e1116"> </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="background:#0e1116">  </span><span style="color:#465059;background:#0e1116">ivo: the 429 is upstream      </span><span style="background:#0e1116"> </span><span style="color:#0b0d10;background:#6fb8c9">[2]</span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            @nadia can you look?          </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#86b579;background:#0e1116">●</span><span style="background:#0e1116"> </span><span style="color:#6fb8c9;background:#0e1116">nadia                     </span><span style="background:#0e1116"> </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="color:#86b579;background:#0e1116">~</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">wire notes                   </span><span style="color:#465059;background:#0e1116">1h   </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            </span><span style="color:#d1a869;background:#0b0d10;font-weight:700">▣</span><span style="background:#0b0d10"> </span><span style="color:#c9ced3;background:#0b0d10">auth-p95-260…</span><span style="background:#0b0d10">  </span><span style="color:#465059;background:#0b0d10">184 KB · png</span><span style="background:#0b0d10"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#86b579;background:#0e1116">●</span><span style="background:#0e1116"> </span><span style="color:#d1a869;background:#0e1116">sam                       </span><span style="background:#0e1116"> </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="background:#0e1116">  </span><span style="color:#465059;background:#0e1116">draft: saved locally              </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            </span><span style="color:#3f4750;background:#0b0d10">[</span><span style="background:#0b0d10"><span class="w2">👀</span> </span><span style="color:#465059;background:#0b0d10">5</span><span style="color:#3f4750;background:#0b0d10">]</span><span style="background:#0b0d10"> </span><span style="color:#3f4750;background:#0b0d10">[</span><span style="background:#0b0d10"><span class="w2">🔥</span> </span><span style="color:#465059;background:#0b0d10">2</span><span style="color:#3f4750;background:#0b0d10">]</span><span style="background:#0b0d10">                 </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#3f4750;background:#0e1116">○</span><span style="background:#0e1116"> </span><span style="color:#b58ac9;background:#0e1116">mira                   </span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">4h</span><span style="background:#0e1116"> </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="color:#d1a869;background:#0e1116">!</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">ops-alerts muted             </span><span style="color:#465059;background:#0e1116">2h   </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">20:44</span><span style="background:#0b0d10">  </span><span style="color:#d1a869;background:#0b0d10">     sam</span><span style="background:#0b0d10">  The offending query, for the  </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#3f4750;background:#0e1116">○</span><span style="background:#0e1116"> </span><span style="color:#8aa8d0;background:#0e1116">jonas                  </span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">2d</span><span style="background:#0e1116"> </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="background:#0e1116">  </span><span style="color:#465059;background:#0e1116">p95 back under 400ms         </span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#171d24">(31)</span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            record:                       </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#3f4750;background:#0e1116">·</span><span style="background:#0e1116"> </span><span style="color:#3f4750;background:#0e1116">+19 more                  </span><span style="background:#0e1116"> </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="color:#8aa8d0;background:#0e1116">@</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">Mira Okonkwo                 </span><span style="color:#465059;background:#0e1116">4h   </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            </span><span style="color:#262c36;background:#0b0d10">┌</span><span style="background:#0b0d10"> </span><span style="color:#d1a869;background:#0b0d10">sql</span><span style="background:#0b0d10"> </span><span style="color:#262c36;background:#0b0d10">─────────────</span><span style="background:#0b0d10"> </span><span style="color:#465059;background:#0b0d10">4 lines</span><span style="background:#0b0d10"> </span><span style="color:#262c36;background:#0b0d10">┐</span><span style="background:#0b0d10"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="background:#0e1116">  </span><span style="color:#465059;background:#0e1116">sounds good — thurs then          </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            </span><span style="color:#262c36;background:#0b0d10">│</span><span style="color:#3f4750;background:#0b0d10">1</span><span style="background:#0b0d10">  </span><span style="color:#c9ced3;background:#0b0d10">SELECT s.* FROM session…</span><span style="color:#262c36;background:#0b0d10">│</span><span style="background:#0b0d10"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">FILES</span><span style="background:#0e1116">                        </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="color:#b58ac9;background:#0e1116">#</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">design-crit                  </span><span style="color:#465059;background:#0e1116">yd   </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            </span><span style="color:#262c36;background:#0b0d10">│</span><span style="color:#3f4750;background:#0b0d10">2</span><span style="background:#0b0d10">  </span><span style="color:#c9ced3;background:#0b0d10">  JOIN devices d ON d.s…</span><span style="color:#262c36;background:#0b0d10">│</span><span style="background:#0b0d10"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#d1a869;background:#0e1116">▣</span><span style="background:#0e1116"> </span><span style="color:#c9ced3;background:#0e1116">auth-p95-2608.png    </span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">184K</span><span style="background:#0e1116"> </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="background:#0e1116">  </span><span style="color:#465059;background:#0e1116">you: left comments on 3           </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            </span><span style="color:#262c36;background:#0b0d10">│</span><span style="color:#3f4750;background:#0b0d10">3</span><span style="background:#0b0d10">  </span><span style="color:#c97369;background:#0b0d10">- WHERE s.touched &gt; now…</span><span style="color:#262c36;background:#0b0d10">│</span><span style="background:#0b0d10"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#d1a869;background:#0e1116">▤</span><span style="background:#0e1116"> </span><span style="color:#c9ced3;background:#0e1116">incident-0812.md       </span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">6K</span><span style="background:#0e1116"> </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="color:#d1a869;background:#0e1116">!</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">tape/changelog muted         </span><span style="color:#465059;background:#0e1116">yd   </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            </span><span style="color:#262c36;background:#0b0d10">│</span><span style="color:#3f4750;background:#0b0d10">4</span><span style="background:#0b0d10">  </span><span style="color:#86b579;background:#0b0d10">+ WHERE s.touched &gt; now…</span><span style="color:#262c36;background:#0b0d10">│</span><span style="background:#0b0d10"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#d1a869;background:#0e1116">▤</span><span style="background:#0e1116"> </span><span style="color:#c9ced3;background:#0e1116">backoff.patch          </span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">2K</span><span style="background:#0e1116"> </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="background:#0e1116">  </span><span style="color:#465059;background:#0e1116">v0.4.1 — keymap overhaul          </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            </span><span style="color:#262c36;background:#0b0d10">└───────────────────────────┘</span><span style="background:#0b0d10"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="color:#8aa8d0;background:#0e1116">@</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">Jonas Vik                    </span><span style="color:#465059;background:#0e1116">2d   </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">20:47</span><span style="background:#0b0d10">  </span><span style="color:#6fb8c9;background:#0b0d10">   nadia</span><span style="background:#0b0d10">  That is the migration         </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="color:#3f4750;background:#0e1116"> </span><span style="background:#0e1116">  </span><span style="color:#465059;background:#0e1116">thanks, that unblocked me         </span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            backfill, not the rollout. It </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            drains in ~20 min.            </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">20:52</span><span style="background:#0b0d10">  </span><span style="color:#86b579;background:#0b0d10">     you</span><span style="background:#0b0d10">  Confirmed from the queue      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            dashboard. Resuming.  </span><span style="color:#86b579;background:#0b0d10">✓✓</span><span style="background:#0b0d10">      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10"> </span><span style="color:#d1a869;background:#0b0d10">4 NEW</span><span style="background:#0b0d10"> </span><span style="color:#d1a869;background:#0b0d10">──────────────────────────────────────────</span><span style="background:#0b0d10"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">20:58</span><span style="background:#0b0d10">  </span><span style="color:#8aa8d0;background:#0b0d10">     ivo</span><span style="background:#0b0d10">  Resumed. Canary at 5%.        </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">21:01</span><span style="background:#0b0d10">  </span><span style="color:#6fb8c9;background:#0b0d10">   nadia</span><span style="background:#0b0d10">  </span><span style="color:#5c666e;background:#0b0d10">↳ ivo Resumed. Canary at 5%.</span><span style="background:#0b0d10">  </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            Rebased onto main, CI is      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            green now. 4412 ready for the </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            second approval.              </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">21:02</span><span style="background:#0b0d10">  </span><span style="color:#d1a869;background:#0b0d10">     sam</span><span style="background:#0b0d10">  Approved. Merging behind the  </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            flag.                         </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">            </span><span style="color:#3f4750;background:#0b0d10">[</span><span style="background:#0b0d10"><span class="w2">🚀</span> </span><span style="color:#465059;background:#0b0d10">4</span><span style="color:#3f4750;background:#0b0d10">]</span><span style="background:#0b0d10">                        </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#12171d"> </span><span style="color:#3f4750;background:#12171d">▌</span><span style="background:#12171d"> </span><span style="color:#465059;background:#12171d">21:03</span><span style="background:#12171d">  </span><span style="color:#8aa8d0;background:#12171d">     ivo</span><span style="background:#12171d">  Good. I will write the        </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#12171d"> </span><span style="color:#3f4750;background:#12171d">▌</span><span style="background:#12171d"> </span><span style="color:#465059;background:#12171d">     </span><span style="background:#12171d">            incident note either way —    </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#12171d"> </span><span style="color:#3f4750;background:#12171d">▌</span><span style="background:#12171d"> </span><span style="color:#465059;background:#12171d">     </span><span style="background:#12171d">            cheap to have, expensive to   </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#12171d"> </span><span style="color:#3f4750;background:#12171d">▌</span><span style="background:#12171d"> </span><span style="color:#465059;background:#12171d">     </span><span style="background:#12171d">            reconstruct.                  </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0b0d10">   </span><span style="color:#465059;background:#0b0d10">     </span><span style="background:#0b0d10">  </span><span style="color:#3f4750;background:#0b0d10">     ···</span><span style="background:#0b0d10">  </span><span style="color:#5c666e;background:#0b0d10">nadia is typing…</span><span style="background:#0b0d10">              </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#d1a869;background:#0e1116">reply</span><span style="background:#0e1116"> </span><span style="color:#3f4750;background:#0e1116">↳</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">nadia: Rebased onto main, C…</span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">esc to drop</span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#0e1116">                                      </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116"> </span><span style="color:#6fb8c9;background:#0e1116;font-weight:700">NORMAL</span><span style="background:#0e1116"> </span><span style="color:#6fb8c9;background:#0e1116">›</span><span style="background:#0e1116"> </span><span style="color:#5c666e;background:#0e1116">i to compose · : for commands       </span><span style="background:#0e1116"> </span><span style="color:#465059;background:#0e1116">md</span><span style="background:#0e1116"> </span><span style="color:#1f242b;background:#0b0d10">│</span><span style="background:#0e1116">                              </span>
+<span style="background:#12151a"> </span><span style="color:#6fb8c9;background:#12151a">j/k</span><span style="background:#12151a"> </span><span style="color:#465059;background:#12151a">move</span><span style="background:#12151a">  </span><span style="color:#6fb8c9;background:#12151a">l</span><span style="background:#12151a"> </span><span style="color:#465059;background:#12151a">open</span><span style="background:#12151a">  </span><span style="color:#6fb8c9;background:#12151a">/</span><span style="background:#12151a"> </span><span style="color:#465059;background:#12151a">filter</span><span style="background:#12151a">  </span><span style="color:#6fb8c9;background:#12151a">[/]</span><span style="background:#12151a"> </span><span style="color:#465059;background:#12151a">folder</span><span style="background:#12151a">  </span><span style="color:#6fb8c9;background:#12151a">u</span><span style="background:#12151a"> </span><span style="color:#465059;background:#12151a">unread</span><span style="background:#12151a">  </span><span style="color:#6fb8c9;background:#12151a">i</span><span style="background:#12151a"> </span><span style="color:#465059;background:#12151a">compose</span><span style="background:#12151a">  </span><span style="color:#6fb8c9;background:#12151a">q</span><span style="background:#12151a"> </span><span style="color:#465059;background:#12151a">quit</span><span style="background:#12151a">  </span><span style="color:#6fb8c9;background:#12151a">?</span><span style="background:#12151a"> </span><span style="color:#465059;background:#12151a">keymap</span><span style="background:#12151a">      </span><span style="color:#3f4750;background:#12151a">idx 12 msgs · 9 buffers · 37 unread</span><span style="background:#12151a"> </span></pre></div>
+      </div>
+      <p class="frame-note">
+        Not a screenshot — this is the renderer's own output, the same <strong>120×40 golden fixture</strong>
+        the test suite asserts against cell for cell, with its real colours. Every row is exactly 120 display
+        cells wide; the suite fails if one is not. Sample data, no real conversations.
+      </p>
+    </section>
+
+    <!-- ── What it is ── -->
+    <section id="about">
+      <h2><span class="emoji">📐</span> A Terminal Tool, Not a Chat GUI in a Box</h2>
+      <div class="info-card">
+        <p>
+          Most terminal chat clients draw a desktop app with ASCII. This one does not. There are
+          <strong>no bubbles, no avatars, no rounded boxes</strong> — panels are divided by single-cell rules,
+          messages sit on a fixed <strong>time / sender / body grid</strong> so the whole conversation aligns to
+          one column, and every row is exactly the width of your terminal.
+        </p>
+        <p>
+          Graphics are opt-in. Media normally appears as a metadata card; a photo is drawn in the pane only when
+          you open it. Code fences are framed and line-numbered, quotes get a rule, spoilers stay hidden until
+          you press <code>x</code>.
+        </p>
+        <p>
+          It is <strong>modal</strong>, and it says so: the composer carries a NORMAL / INSERT / VI / COMMAND badge,
+          so one glance answers whether the next letter types, navigates, or runs a command.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Features ── -->
+    <section>
+      <h2><span class="emoji">⚡</span> What's In It</h2>
+      <div class="grid">
+        <div class="tile">
+          <h3>Folders &amp; unread</h3>
+          <p>Telegram's own folder filters as numbered tabs, with pinned/include/exclude semantics. <code>u</code> jumps to the next chat with something in it.</p>
+        </div>
+        <div class="tile">
+          <h3>Reactions &amp; pins</h3>
+          <p><code>+</code> opens a one-row picker of the twelve defaults and opens on the one you already left, so pressing it again takes it off. <code>p</code> pins.</p>
+        </div>
+        <div class="tile">
+          <h3>Forwarding</h3>
+          <p><code>f</code> opens a searchable destination picker — your chats first, then anything the server matches — and confirms before it sends.</p>
+        </div>
+        <div class="tile">
+          <h3>Threads</h3>
+          <p>A channel post with comments says so, and <code>t</code> opens the discussion in the linked group at the post's own copy.</p>
+        </div>
+        <div class="tile">
+          <h3>Context rail</h3>
+          <p>Thirty cells beside the thread: pinned messages, members, shared files and links — chosen by chat type, fetched only when you open it.</p>
+        </div>
+        <div class="tile">
+          <h3>Composer that behaves</h3>
+          <p>Per-chat drafts, emacs or vi line editing, <code>Ctrl+O</code> to finish the message in <code>$EDITOR</code>, clipboard image paste, optional Markdown.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Keys ── -->
+    <section id="keys">
+      <h2><span class="emoji">⌨️</span> The Keymap Is vi's</h2>
+      <div class="info-card" style="margin-bottom: 20px;">
+        <p>
+          Motions are vi's and are not configurable — <code>j</code>/<code>k</code> move by message,
+          <code>Ctrl+E</code>/<code>Ctrl+Y</code> scroll the buffer, and a count prefix works
+          (<code>9k</code> moves nine messages back). The action keys are mnemonics and every one of them can be
+          rebound; a binding that collides with something already claimed is <strong>refused and reported at
+          startup</strong> rather than silently shadowing it.
+        </p>
+      </div>
+      <table class="keys-table">
+        <thead><tr><th>Key</th><th>Does</th></tr></thead>
+        <tbody>
+          <tr><td><code>j</code> / <code>k</code></td><td>Cursor to the next / previous message</td></tr>
+          <tr><td><code>h</code> / <code>l</code></td><td>Move between panels — they are edges, not a cycle</td></tr>
+          <tr><td><code>[</code> / <code>]</code></td><td>Previous / next folder, from either browsing panel</td></tr>
+          <tr><td><code>i</code></td><td>Open the cursored chat and start composing</td></tr>
+          <tr><td><code>r</code> / <code>e</code> / <code>d</code></td><td>Reply, edit, delete — <code>d</code> asks, and says for whom</td></tr>
+          <tr><td><code>f</code></td><td>Forward to another chat</td></tr>
+          <tr><td><code>+</code> / <code>p</code></td><td>React / pin</td></tr>
+          <tr><td><code>/</code> · <code>Ctrl+G</code></td><td>Search this buffer · search every chat</td></tr>
+          <tr><td><code>:</code></td><td>Command palette</td></tr>
+          <tr><td><code>?</code></td><td>Context-sensitive help, built from the bindings actually in force</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ── MCP & REST ── -->
+    <section id="agents">
+      <h2><span class="emoji">🔌</span> Three Front Ends, One Account</h2>
+      <div class="info-card">
+        <p>
+          The same Telegram layer ships as three binaries: <strong>tele-tui</strong> (the client above),
+          <strong>telegram-mcp</strong> (an MCP server over stdio) and <strong>telegram-api</strong>
+          (a JSON REST API, standard library only).
+        </p>
+        <p>
+          The service front ends are built for being pointed at an agent, which is a threat model rather than a
+          feature list. The REST API is <strong>loopback-only and bearer-authenticated by default</strong>, and
+          refuses to start unauthenticated unless you say so explicitly. Sending a file is limited to an
+          <strong>allowlist of directories you choose</strong> — logged at startup — so a message from a stranger
+          cannot talk a model into mailing out your SSH key.
+        </p>
+        <div class="env-block"><span class="comment"># MCP, over stdio</span>
+telegram-mcp login
+telegram-mcp serve
+
+<span class="comment"># or the REST API, on loopback with a generated token</span>
+telegram-api serve</div>
+      </div>
+    </section>
+
+    <!-- ── Install ── -->
+    <section id="install">
+      <h2><span class="emoji">📦</span> Installation</h2>
+      <div class="info-card">
+        <p>
+          Built with <strong>Go</strong>. You need your own <code>api_id</code> / <code>api_hash</code> from
+          <a href="https://my.telegram.org/apps" target="_blank" rel="noopener">my.telegram.org/apps</a> — the
+          client talks to Telegram as your account, not through a bot.
+        </p>
+        <div class="env-block">git clone https://github.com/Ceesaxp/telegram-cli.git
+cd telegram-cli
+make build
+
+./bin/tele-tui        <span class="comment"># first run walks you through login</span></div>
+        <p style="margin-top: 16px;">
+          Cross-compiled builds for macOS, Linux, Windows and Android are published on the
+          <a href="https://github.com/Ceesaxp/telegram-cli/releases" target="_blank" rel="noopener">releases page</a>.
+        </p>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <span>tele-tui · by <a href="/">Andrei Popov</a></span>
+    <a href="https://github.com/Ceesaxp/telegram-cli">GitHub</a>
+  </footer>
+
+</body>
+</html>
