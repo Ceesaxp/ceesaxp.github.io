@@ -267,6 +267,7 @@
         <a href="#keys">Keys</a>
         <a href="#agents">MCP &amp; REST</a>
         <a href="#install">Install</a>
+        <a href="#lineage">Lineage</a>
       </div>
     </div>
   </div>
@@ -468,9 +469,25 @@ telegram-api serve</div>
         <p><strong>🍺 Homebrew</strong> — macOS and Linux, Intel and ARM. Installs all three binaries.</p>
         <div class="env-block">brew install ceesaxp/tap/tele-tui</div>
       </div>
+      <div class="info-card" style="margin-bottom: 14px;">
+        <p><strong>🐹 Go toolchain</strong> — if you already have Go 1.25 or newer.</p>
+        <div class="env-block">go install github.com/Ceesaxp/telegram-cli/cmd/teletui@latest
+
+<span class="comment"># the MCP server and the REST API are their own commands</span>
+go install github.com/Ceesaxp/telegram-cli/cmd/telegram-mcp@latest
+go install github.com/Ceesaxp/telegram-cli/cmd/telegram-api@latest</div>
+        <p style="margin-top: 14px;">
+          Two things to know about this route. The binary lands in <code>$GOPATH/bin</code> as
+          <code>teletui</code>, not <code>tele-tui</code> — <code>go install</code> names it after its
+          directory, while the release archives and <code>make build</code> both call it
+          <code>tele-tui</code>. And it reports its version as <code>dev</code>, because the version is
+          stamped in at link time by the Makefile and <code>go install</code> does not run it.
+          Neither affects what the program does.
+        </p>
+      </div>
       <div class="info-card">
         <p>
-          Or build it yourself with <strong>Go</strong>. Either way you need your own
+          Or <strong>build from source</strong>. Whichever route you take you need your own
           <code>api_id</code> / <code>api_hash</code> from
           <a href="https://my.telegram.org/apps" target="_blank" rel="noopener">my.telegram.org/apps</a> — the
           client talks to Telegram as your account, not through a bot.
@@ -481,8 +498,32 @@ make build
 
 ./bin/tele-tui        <span class="comment"># first run walks you through login</span></div>
         <p style="margin-top: 16px;">
-          Cross-compiled builds for macOS, Linux, Windows and Android are published on the
+          Pure Go, no CGO, no native dependencies. Cross-compiled builds for macOS, Linux, Windows and
+          Android are published on the
           <a href="https://github.com/Ceesaxp/telegram-cli/releases" target="_blank" rel="noopener">releases page</a>.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Lineage ── -->
+    <section id="lineage">
+      <h2><span class="emoji">🌱</span> Where It Came From</h2>
+      <div class="info-card">
+        <p>
+          <strong>This is a fork, not a from-scratch project.</strong> It began as
+          <a href="https://github.com/imtaqin/telegram-cli" target="_blank" rel="noopener">imtaqin/telegram-cli</a>
+          — excellent work, and the foundation everything here is built on.
+        </p>
+        <p>
+          It has since diverged substantially. The interface was rebuilt around a terminal-native design
+          rather than a chat GUI drawn in ASCII, and the client gained update-sequence persistence, chat
+          folders, reactions, pinning, channel discussions, a context rail, per-chat drafts, message
+          forwarding, and a good deal more — along with the MCP and REST front ends. Enough has changed
+          that calling it the same program would be misleading in the other direction.
+        </p>
+        <p>
+          Upstream is not responsible for anything here. The project stays MIT-licensed, and the original
+          copyright notice travels with it.
         </p>
       </div>
     </section>
@@ -490,7 +531,7 @@ make build
   </div>
 
   <footer>
-    <span>tele-tui · by <a href="/">Andrei Popov</a></span>
+    <span>tele-tui · a fork of <a href="https://github.com/imtaqin/telegram-cli" target="_blank" rel="noopener">imtaqin/telegram-cli</a> · by <a href="/">Andrei Popov</a></span>
     <a href="https://github.com/Ceesaxp/telegram-cli">GitHub</a>
   </footer>
 
