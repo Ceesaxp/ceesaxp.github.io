@@ -383,7 +383,7 @@
       <div class="grid">
         <div class="tile">
           <h3>Folders &amp; unread</h3>
-          <p>Telegram's own folder filters as numbered tabs, with pinned/include/exclude semantics. <code>u</code> jumps to the next chat with something in it.</p>
+          <p>Telegram's own folder filters as numbered tabs, with pinned/include/exclude semantics. Unread counts move live, opening a chat reads it on your phone too, and an <code>@</code> marks the chats that mention you — muted or not. <code>u</code> jumps to the next unread chat, <code>g@</code> to the next mention.</p>
         </div>
         <div class="tile">
           <h3>Reactions &amp; pins</h3>
@@ -430,6 +430,7 @@
           <tr><td><code>r</code> / <code>e</code> / <code>d</code></td><td>Reply, edit, delete — <code>d</code> asks, and says for whom</td></tr>
           <tr><td><code>f</code></td><td>Forward to another chat</td></tr>
           <tr><td><code>+</code> / <code>p</code></td><td>React / pin</td></tr>
+          <tr><td><code>gx</code> / <code>g@</code></td><td>Follow a link · jump to the next unread mention (<code>Ctrl+O</code> comes back)</td></tr>
           <tr><td><code>/</code> · <code>Ctrl+G</code></td><td>Search this buffer · search every chat</td></tr>
           <tr><td><code>:</code></td><td>Command palette</td></tr>
           <tr><td><code>?</code></td><td>Context-sensitive help, built from the bindings actually in force</td></tr>
@@ -517,7 +518,7 @@ make build
         <p>
           It has since diverged substantially. The interface was rebuilt around a terminal-native design
           rather than a chat GUI drawn in ASCII, and the client gained update-sequence persistence, chat
-          folders, reactions, pinning, channel discussions, a context rail, per-chat drafts, message
+          folders, reactions, pinning, channel discussions, unread @-mentions, a context rail, per-chat drafts, message
           forwarding, and a good deal more — along with the MCP and REST front ends. Enough has changed
           that calling it the same program would be misleading in the other direction.
         </p>
