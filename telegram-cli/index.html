@@ -407,7 +407,7 @@
         </div>
         <div class="tile">
           <h3>Composer that behaves</h3>
-          <p>Per-chat drafts, emacs or vi line editing, <code>Ctrl+O</code> to finish the message in <code>$EDITOR</code>, clipboard image paste, optional Markdown.</p>
+          <p>Per-chat drafts, emacs or vi line editing, <code>Ctrl+O</code> to finish the message in <code>$EDITOR</code>, clipboard image paste, optional Markdown. <code>@</code> in a group completes a member&rsquo;s name, and the result is a real mention even for people without a username.</p>
         </div>
       </div>
     </section>
@@ -435,6 +435,7 @@
           <tr><td><code>f</code></td><td>Forward to another chat</td></tr>
           <tr><td><code>+</code> / <code>p</code></td><td>React / pin</td></tr>
           <tr><td><code>gx</code> / <code>g@</code></td><td>Follow a link · jump to the next unread mention (<code>Ctrl+O</code> comes back)</td></tr>
+          <tr><td><code>@</code> (composing)</td><td>Complete a group member&rsquo;s name — arrows choose, <code>Enter</code>/<code>Tab</code> insert, <code>Esc</code> closes</td></tr>
           <tr><td><code>/</code> · <code>Ctrl+G</code></td><td>Search this buffer · search every chat</td></tr>
           <tr><td><code>:</code></td><td>Command palette</td></tr>
           <tr><td><code>?</code></td><td>Context-sensitive help, built from the bindings actually in force</td></tr>
@@ -522,7 +523,7 @@ make build
         <p>
           It has since diverged substantially. The interface was rebuilt around a terminal-native design
           rather than a chat GUI drawn in ASCII, and the client gained update-sequence persistence, chat
-          folders, reactions, pinning, channel discussions, unread @-mentions, theme files, a context rail, per-chat drafts, message
+          folders, reactions, pinning, channel discussions, unread @-mentions and mention completion, theme files, a context rail, per-chat drafts, message
           forwarding, and a good deal more — along with the MCP and REST front ends. Enough has changed
           that calling it the same program would be misleading in the other direction.
         </p>
