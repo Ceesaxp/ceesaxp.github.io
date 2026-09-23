@@ -403,7 +403,7 @@
         </div>
         <div class="tile">
           <h3>Themes</h3>
-          <p>A theme is a TOML file you write: <code>theme = "tokyonight"</code> picks up <code>themes/tokyonight.toml</code>. Nine ship as examples — Tokyo Night, Gruvbox, Dracula, Catppuccin, Nord, One Dark, Kanagawa, Rosé Pine, Everforest — and a bad file only ever falls back to dark.</p>
+          <p>A theme is a TOML file you write: <code>theme = "tokyonight"</code> picks up <code>themes/tokyonight.toml</code>. Nine ship as examples — Tokyo Night, Gruvbox, Dracula, Catppuccin, Nord, One Dark, Kanagawa, Rosé Pine, Everforest — and a bad file only ever falls back to dark. <code>:theme</code> switches the whole app on the spot and writes the choice back, rewriting only that one line of your config.</p>
         </div>
         <div class="tile">
           <h3>Composer that behaves</h3>
@@ -437,7 +437,7 @@
           <tr><td><code>gx</code> / <code>g@</code></td><td>Follow a link · jump to the next unread mention (<code>Ctrl+O</code> comes back)</td></tr>
           <tr><td><code>@</code> (composing)</td><td>Complete a group member&rsquo;s name — arrows choose, <code>Enter</code>/<code>Tab</code> insert, <code>Esc</code> closes</td></tr>
           <tr><td><code>/</code> · <code>Ctrl+G</code></td><td>Search this buffer · search every chat</td></tr>
-          <tr><td><code>:</code></td><td>Command palette</td></tr>
+          <tr><td><code>:</code></td><td>Command palette — <code>:theme</code> lists every theme and switches live, <code>:reload-config</code> re-reads the file</td></tr>
           <tr><td><code>?</code></td><td>Context-sensitive help, built from the bindings actually in force</td></tr>
         </tbody>
       </table>
