@@ -398,6 +398,10 @@
           <p>A channel post with comments says so, and <code>t</code> opens the discussion in the linked group at the post's own copy.</p>
         </div>
         <div class="tile">
+          <h3>Forum topics</h3>
+          <p>A forum opens like a directory: <code>Enter</code> replaces the chat list with that forum&rsquo;s topics — same panel, same rows, one level down — and <code>Esc</code> comes back up. Each topic is a chat of its own, with its own history, unread badge, draft and read state, so posting lands in the topic you are reading rather than in General.</p>
+        </div>
+        <div class="tile">
           <h3>Context rail</h3>
           <p>Thirty cells beside the thread: pinned messages, members, shared files and links — chosen by chat type, fetched only when you open it.</p>
         </div>
@@ -430,6 +434,7 @@
           <tr><td><code>j</code> / <code>k</code></td><td>Cursor to the next / previous message</td></tr>
           <tr><td><code>h</code> / <code>l</code></td><td>Move between panels — they are edges, not a cycle</td></tr>
           <tr><td><code>[</code> / <code>]</code></td><td>Previous / next folder, from either browsing panel</td></tr>
+          <tr><td><code>Enter</code> · <code>Esc</code></td><td>On a forum, drill into its topics · come back up (<code>Backspace</code> too)</td></tr>
           <tr><td><code>i</code></td><td>Open the cursored chat and start composing</td></tr>
           <tr><td><code>r</code> / <code>e</code> / <code>d</code></td><td>Reply, edit, delete — <code>d</code> asks, and says for whom</td></tr>
           <tr><td><code>f</code></td><td>Forward to another chat</td></tr>
@@ -523,7 +528,7 @@ make build
         <p>
           It has since diverged substantially. The interface was rebuilt around a terminal-native design
           rather than a chat GUI drawn in ASCII, and the client gained update-sequence persistence, chat
-          folders, reactions, pinning, channel discussions, unread @-mentions and mention completion, theme files, a context rail, per-chat drafts, message
+          folders, reactions, pinning, channel discussions, unread @-mentions and mention completion, forum topics, theme files, a context rail, per-chat drafts, message
           forwarding, and a good deal more — along with the MCP and REST front ends. Enough has changed
           that calling it the same program would be misleading in the other direction.
         </p>
