@@ -56,7 +56,7 @@
 <body>
   <main>
     <h1>Privacy Policy for Writ</h1>
-    <p class="date"><strong>Effective date:</strong> May 20, 2026</p>
+    <p class="date"><strong>Effective date:</strong> October 30, 2026</p>
 
     <p>
       Writ is designed to respect your privacy. We do not collect, store, use, or share any personal data or usage data from users of the app.
@@ -64,12 +64,23 @@
 
     <h2>Data Collection</h2>
     <p>
-      We do not collect any personal information, identifiers, analytics, location data, contacts, or any other user data. Writ operates entirely on your Mac; your documents stay on your device.
+      We do not collect any personal information, identifiers, analytics, location data, contacts, or any other user data. Writ operates on your Mac and your documents stay on your device. There is one feature that can send part of a document to a server, and only if you switch it on yourself and tell Writ which server to use — see <a href="#plantuml">Optional diagram rendering</a> below.
     </p>
 
     <h2>Third-Party Services</h2>
     <p>
-      Writ does not use third-party analytics, advertising SDKs, or external tracking services that collect user data. Rendering of Markdown, math, and diagrams is performed locally using bundled libraries; no content is sent over the network.
+      Writ does not use third-party analytics, advertising SDKs, or external tracking services that collect user data. Markdown, math, Mermaid diagrams and syntax highlighting are all rendered on your Mac by libraries bundled inside the app: nothing is downloaded at runtime and none of your content is sent anywhere.
+    </p>
+
+    <h2 id="plantuml">Optional Diagram Rendering (PlantUML)</h2>
+    <p>
+      Writ can also render PlantUML diagrams. Unlike everything above, PlantUML has no bundled renderer, so this is the one feature that sends content off your Mac — and it is off unless you enable it twice over. The document must declare <code>plantuml: true</code> in its front matter, <em>and</em> you must enter the address of a PlantUML or Kroki server in Writ's settings. No server address is configured out of the box, and with none configured nothing is sent.
+    </p>
+    <p>
+      When both of those are in place, Writ sends the text of each PlantUML code block — not the rest of your document — to the server address you entered, and shows the diagram it returns. That server is one you choose and control, typically one you run yourself on your own machine or your own network. We do not operate it and never receive the request. The address you configure is stored only on your Mac.
+    </p>
+    <p>
+      Clearing the server address, or removing the <code>plantuml: true</code> line, stops Writ sending anything.
     </p>
 
     <h2>Data Sharing</h2>
